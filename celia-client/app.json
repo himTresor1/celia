@@ -5,14 +5,27 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "celia",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "y",
+      "bundleIdentifier": "com.peace123.celiaevents",
+      "buildNumber": "1",
+      "deploymentTarget": "13.4",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "This app uses the camera to take photos for events and profiles.",
+        "NSPhotoLibraryUsageDescription": "This app accesses your photos to let you add profile pictures and event images.",
+        "NSPhotoLibraryAddUsageDescription": "This app needs access to save photos to your library."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
@@ -20,10 +33,20 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#3AFF6E"
       },
+      "package": "com.peace123.celiaevents",
+      "versionCode": 1,
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES"
       ],
-      "package": "com.peace123.celiaevents"
+      "config": {
+        "googleMaps": {
+          "apiKey": ""
+        }
+      }
     },
     "web": {
       "bundler": "metro",
@@ -37,7 +60,16 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to let you add profile pictures."
+          "photosPermission": "The app accesses your photos to let you add profile pictures.",
+          "cameraPermission": "The app uses the camera to take photos for events and profiles."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
         }
       ]
     ],

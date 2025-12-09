@@ -5,7 +5,18 @@
   "private": true,
   "scripts": {
     "dev": "expo start",
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "ios:device": "expo run:ios --device",
+    "ios:list": "xcrun simctl list devices available",
+    "web": "expo start --web",
     "build:web": "expo export --platform web",
+    "build:android": "eas build --platform android",
+    "build:ios": "eas build --platform ios",
+    "build:all": "eas build --platform all",
+    "build:dev:android": "eas build --platform android --profile development",
+    "build:dev:ios": "eas build --platform ios --profile development",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit"
   },
