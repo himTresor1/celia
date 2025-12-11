@@ -26,9 +26,20 @@ function RootLayoutNav() {
     const inSplash = segments[0] === 'splash';
     const inOnboarding = segments[0] === 'onboarding';
     const inTabs = segments[0] === '(tabs)';
+    const inGetStarted = segments[0] === 'get-started';
+    const inEvent = segments[0] === 'event';
+    const inBrowse = segments[0] === 'browse';
+    const inSaved = segments[0] === 'saved';
 
-    // Don't interfere with splash or onboarding
-    if (inSplash || inOnboarding) {
+    // Don't interfere with splash, onboarding, or navigation flows
+    if (
+      inSplash ||
+      inOnboarding ||
+      inGetStarted ||
+      inEvent ||
+      inBrowse ||
+      inSaved
+    ) {
       return;
     }
 
@@ -36,7 +47,7 @@ function RootLayoutNav() {
     if (session && profile) {
       if (!profile.is_profile_completed && !inProfileSetup) {
         router.replace('/profile-setup');
-      } else if (profile.is_profile_completed && !inTabs) {
+      } else if (profile.is_profile_completed && !inTabs && !inGetStarted) {
         router.replace('/(tabs)');
       }
     }
@@ -47,9 +58,13 @@ function RootLayoutNav() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="splash" options={{ animation: 'none' }} />
       <Stack.Screen name="onboarding" />
+      <Stack.Screen name="get-started" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="profile-setup" />
+      <Stack.Screen name="event" />
+      <Stack.Screen name="browse" />
+      <Stack.Screen name="saved" />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

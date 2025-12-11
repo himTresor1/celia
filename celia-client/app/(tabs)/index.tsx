@@ -12,13 +12,29 @@ import {
   StatusBar,
   TextInput,
   Platform,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
-import { Search, Filter, X, Heart, MapPin, GraduationCap, Sparkles } from 'lucide-react-native';
+import {
+  Search,
+  Filter,
+  X,
+  Heart,
+  MapPin,
+  GraduationCap,
+  Sparkles,
+  Calendar,
+  Eye,
+  Grid,
+  List,
+} from 'lucide-react-native';
 import { DUMMY_USERS } from '@/lib/dummyUsers';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colors, BorderRadius } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 80; // Reduced for easier swiping
@@ -34,6 +50,9 @@ interface UserProfile {
   bio?: string;
 }
 
+const PASSED_USERS_KEY = 'passed_users_just_looking';
+const SAVED_USERS_KEY = 'saved_users_general';
+
 export default function HomeScreen() {
   const { profile, user } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -42,6 +61,11 @@ export default function HomeScreen() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showChoiceModal, setShowChoiceModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'swipe' | 'list'>('swipe');
+  const [isJustLooking, setIsJustLooking] = useState(false);
+  const [savedUsers, setSavedUsers] = useState<Set<string>>(new Set());
+  const [passedUsers, setPassedUsers] = useState<Set<string>>(new Set());
 
   const position = useRef(new Animated.ValueXY()).current;
   const rotation = useRef(new Animated.Value(0)).current;
@@ -50,7 +74,88 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchUsers();
+    checkFirstVisit();
+    loadSavedAndPassedUsers();
   }, []);
+
+  const loadSavedAndPassedUsers = async () => {
+    try {
+      const saved = await AsyncStorage.getItem(SAVED_USERS_KEY);
+      const passed = await AsyncStorage.getItem(PASSED_USERS_KEY);
+      if (saved) {
+        setSavedUsers(new Set(JSON.parse(saved)));
+      }
+      if (passed) {
+        setPassedUsers(new Set(JSON.parse(passed)));
+      }
+    } catch (error) {
+      console.error('Error loading saved/passed users:', error);
+    }
+  };
+
+  const savePassedUser = async (userId: string) => {
+    const newPassed = new Set(passedUsers);
+    newPassed.add(userId);
+    setPassedUsers(newPassed);
+    try {
+      await AsyncStorage.setItem(
+        PASSED_USERS_KEY,
+        JSON.stringify(Array.from(newPassed))
+      );
+    } catch (error) {
+      console.error('Error saving passed user:', error);
+    }
+  };
+
+  const saveUser = async (userId: string) => {
+    const newSaved = new Set(savedUsers);
+    if (newSaved.has(userId)) {
+      newSaved.delete(userId);
+    } else {
+      newSaved.add(userId);
+    }
+    setSavedUsers(newSaved);
+    try {
+      await AsyncStorage.setItem(
+        SAVED_USERS_KEY,
+        JSON.stringify(Array.from(newSaved))
+      );
+    } catch (error) {
+      console.error('Error saving user:', error);
+    }
+  };
+
+  const checkFirstVisit = async () => {
+    try {
+      const hasSeenModal = await AsyncStorage.getItem('hasSeenChoiceModal');
+      if (!hasSeenModal) {
+        // Show modal after a short delay to let the screen render
+        setTimeout(() => {
+          setShowChoiceModal(true);
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error checking first visit:', error);
+    }
+  };
+
+  const handleSelectEvent = async () => {
+    await AsyncStorage.setItem('hasSeenChoiceModal', 'true');
+    setShowChoiceModal(false);
+    setIsJustLooking(false);
+    router.push('/event/select-event');
+  };
+
+  const handleJustLooking = async () => {
+    await AsyncStorage.setItem('hasSeenChoiceModal', 'true');
+    setShowChoiceModal(false);
+    setIsJustLooking(true);
+  };
+
+  const handleSkipModal = async () => {
+    await AsyncStorage.setItem('hasSeenChoiceModal', 'true');
+    setShowChoiceModal(false);
+  };
 
   const fetchUsers = () => {
     const availableUsers = DUMMY_USERS.filter(
@@ -73,12 +178,19 @@ export default function HomeScreen() {
     startX.current = touch.clientX || touch.pageX;
     startY.current = touch.clientY || touch.pageY;
     isDragging.current = true;
-    position.setOffset({ x: position.x._value, y: position.y._value });
+    const currentX = (position.x as any).__getValue
+      ? (position.x as any).__getValue()
+      : 0;
+    const currentY = (position.y as any).__getValue
+      ? (position.y as any).__getValue()
+      : 0;
+    position.setOffset({ x: currentX, y: currentY });
     position.setValue({ x: 0, y: 0 });
   };
 
   const handleWebMove = (e: any) => {
-    if (!isDragging.current || isAnimating || currentIndex >= users.length) return;
+    if (!isDragging.current || isAnimating || currentIndex >= users.length)
+      return;
     e.preventDefault?.();
     e.stopPropagation?.();
     const touch = e.touches?.[0] || e;
@@ -86,7 +198,7 @@ export default function HomeScreen() {
     const currentY = touch.clientY || touch.pageY;
     const dx = currentX - startX.current;
     const dy = (currentY - startY.current) * 0.3;
-    
+
     position.setValue({ x: dx, y: dy });
     rotation.setValue(dx / 20);
   };
@@ -97,7 +209,7 @@ export default function HomeScreen() {
     e.stopPropagation?.();
     isDragging.current = false;
     position.flattenOffset();
-    
+
     if (isAnimating || currentIndex >= users.length) {
       Animated.parallel([
         Animated.spring(position, {
@@ -148,26 +260,37 @@ export default function HomeScreen() {
   // PanResponder for native platforms
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !isAnimating && currentIndex < users.length,
+      onStartShouldSetPanResponder: () =>
+        !isAnimating && currentIndex < users.length,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return !isAnimating && currentIndex < users.length && Math.abs(gestureState.dx) > 5;
+        return (
+          !isAnimating &&
+          currentIndex < users.length &&
+          Math.abs(gestureState.dx) > 5
+        );
       },
       onPanResponderGrant: () => {
-        position.setOffset({ x: position.x._value, y: position.y._value });
+        const currentX = (position.x as any).__getValue
+          ? (position.x as any).__getValue()
+          : 0;
+        const currentY = (position.y as any).__getValue
+          ? (position.y as any).__getValue()
+          : 0;
+        position.setOffset({ x: currentX, y: currentY });
         position.setValue({ x: 0, y: 0 });
       },
       onPanResponderMove: (_, gesture) => {
         if (!isAnimating && currentIndex < users.length) {
           const dx = gesture.dx;
           const dy = gesture.dy * 0.3;
-          
+
           position.setValue({ x: dx, y: dy });
           rotation.setValue(dx / 20);
         }
       },
       onPanResponderRelease: (_, gesture) => {
         position.flattenOffset();
-        
+
         if (isAnimating || currentIndex >= users.length) {
           Animated.parallel([
             Animated.spring(position, {
@@ -233,10 +356,18 @@ export default function HomeScreen() {
 
   const handleInvite = () => {
     if (isAnimating || currentIndex >= users.length) return;
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const user = users[currentIndex];
-    setInvited(prev => [...prev, user.id]);
+
+    // Always add to saved list so the counter reflects swipes/likes
+    saveUser(user.id);
+
+    if (!isJustLooking) {
+      // Normal mode, also track invited separately
+      setInvited((prev) => [...prev, user.id]);
+    }
+
     setIsAnimating(true);
 
     Animated.parallel([
@@ -257,8 +388,15 @@ export default function HomeScreen() {
 
   const handlePass = () => {
     if (isAnimating || currentIndex >= users.length) return;
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const user = users[currentIndex];
+
+    // In "Just Looking" mode, track passed users
+    if (isJustLooking) {
+      savePassedUser(user.id);
+    }
+
     setIsAnimating(true);
 
     Animated.parallel([
@@ -280,7 +418,7 @@ export default function HomeScreen() {
   const moveToNextCard = () => {
     position.setValue({ x: 0, y: 0 });
     rotation.setValue(0);
-    setCurrentIndex(prev => prev + 1);
+    setCurrentIndex((prev) => prev + 1);
     setIsAnimating(false);
 
     // Animate next card
@@ -337,10 +475,12 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.completeTitle}>All Done! 🎉</Text>
           <Text style={styles.completeSubtitle}>
-            You've reviewed {users.length} {users.length === 1 ? 'person' : 'people'}
+            You've reviewed {users.length}{' '}
+            {users.length === 1 ? 'person' : 'people'}
           </Text>
           <Text style={styles.completeSubtitle}>
-            {invited.length} {invited.length === 1 ? 'invitation' : 'invitations'} sent
+            {invited.length}{' '}
+            {invited.length === 1 ? 'invitation' : 'invitations'} sent
           </Text>
           <TouchableOpacity
             style={styles.finishButton}
@@ -360,7 +500,8 @@ export default function HomeScreen() {
   const currentUser = users[currentIndex];
   const nextUser = users[currentIndex + 1];
   const photoUrl = currentUser.photo_urls?.[0] || null;
-  const location = currentUser.preferred_locations?.[0] || currentUser.college_name;
+  const location =
+    currentUser.preferred_locations?.[0] || currentUser.college_name;
 
   const cardRotation = rotation.interpolate({
     inputRange: [-50, 0, 50],
@@ -375,7 +516,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <View>
@@ -385,13 +526,48 @@ export default function HomeScreen() {
           <Text style={styles.subtitle}>Connect with your community</Text>
         </View>
         <View style={styles.headerRight}>
+          <View style={styles.viewModeContainer}>
+            <TouchableOpacity
+              style={[
+                styles.viewModeButton,
+                viewMode === 'swipe' && styles.viewModeButtonActive,
+              ]}
+              onPress={() => setViewMode('swipe')}
+            >
+              <Grid
+                size={18}
+                color={viewMode === 'swipe' ? '#fff' : Colors.textSecondary}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.viewModeButton,
+                viewMode === 'list' && styles.viewModeButtonActive,
+              ]}
+              onPress={() => setViewMode('list')}
+            >
+              <List
+                size={18}
+                color={viewMode === 'list' ? '#fff' : Colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
             style={styles.filterButton}
             onPress={() => setShowFilters(true)}
           >
             <Filter size={20} color="#3AFF6E" />
           </TouchableOpacity>
-          {invited.length > 0 && (
+          {isJustLooking && savedUsers.size > 0 && (
+            <TouchableOpacity
+              style={styles.inviteBadge}
+              onPress={() => router.push('/saved/collection')}
+            >
+              <Heart size={14} color="#fff" fill="#fff" />
+              <Text style={styles.inviteBadgeText}>{savedUsers.size}</Text>
+            </TouchableOpacity>
+          )}
+          {!isJustLooking && invited.length > 0 && (
             <View style={styles.inviteBadge}>
               <Text style={styles.inviteBadgeText}>{invited.length}</Text>
             </View>
@@ -421,178 +597,366 @@ export default function HomeScreen() {
       {/* Results Counter */}
       <View style={styles.resultsHeader}>
         <Text style={styles.resultsText}>
-          {users.length - currentIndex} {users.length - currentIndex === 1 ? 'person' : 'people'} remaining
+          {viewMode === 'swipe'
+            ? `${users.length - currentIndex} ${
+                users.length - currentIndex === 1 ? 'person' : 'people'
+              } remaining`
+            : `${users.length} ${
+                users.length === 1 ? 'person' : 'people'
+              } found`}
         </Text>
+        {isJustLooking && passedUsers.size > 0 && (
+          <TouchableOpacity
+            style={styles.passedUsersButton}
+            onPress={() => router.push({ pathname: '/saved/passed' as any })}
+          >
+            <Text style={styles.passedUsersText}>
+              {passedUsers.size} passed - View later
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Card Stack */}
-      <View style={styles.cardContainer} pointerEvents="box-none">
-        {/* Next Card (Background) */}
-        {nextUser && (
-          <Animated.View
-            style={[
-              styles.card,
-              styles.nextCard,
-              {
-                opacity: nextCardOpacity,
-                transform: [{ scale: nextCardScale }],
-              },
-            ]}
-            pointerEvents="none"
-          >
-            <Image
-              source={{ uri: nextUser.photo_urls?.[0] || '' }}
-              style={styles.cardImage}
-              resizeMode="cover"
-            />
-          </Animated.View>
-        )}
-
-        {/* Current Card */}
-        {currentUser && (
-          <Animated.View
-            {...(Platform.OS === 'web' ? {} : panResponder.panHandlers)}
-            onTouchStart={Platform.OS === 'web' ? handleWebStart : undefined}
-            onTouchMove={Platform.OS === 'web' ? handleWebMove : undefined}
-            onTouchEnd={Platform.OS === 'web' ? handleWebEnd : undefined}
-            onMouseDown={Platform.OS === 'web' ? handleWebStart : undefined}
-            onMouseMove={Platform.OS === 'web' ? (e: any) => {
-              if (isDragging.current) handleWebMove(e);
-            } : undefined}
-            onMouseUp={Platform.OS === 'web' ? handleWebEnd : undefined}
-            onMouseLeave={Platform.OS === 'web' ? () => {
-              if (isDragging.current) {
-                isDragging.current = false;
-                position.flattenOffset();
-                Animated.parallel([
-                  Animated.spring(position, {
-                    toValue: { x: 0, y: 0 },
-                    useNativeDriver: false,
-                    tension: 50,
-                    friction: 7,
-                  }),
-                  Animated.spring(rotation, {
-                    toValue: 0,
-                    useNativeDriver: false,
-                    tension: 50,
-                    friction: 7,
-                  }),
-                ]).start();
-              }
-            } : undefined}
-            style={[
-              styles.card,
-              {
-                transform: [
-                  { translateX: position.x },
-                  { translateY: position.y },
-                  { rotate: cardRotation },
-                ],
-                opacity: cardOpacity,
-              },
-            ]}
-            pointerEvents={isAnimating ? 'none' : 'auto'}
-          >
-            {/* Pass Overlay */}
+      {viewMode === 'swipe' ? (
+        /* Card Stack */
+        <View style={styles.cardContainer} pointerEvents="box-none">
+          {/* Next Card (Background) */}
+          {nextUser && (
             <Animated.View
               style={[
-                styles.overlay,
-                styles.passOverlay,
-                { opacity: getPassOverlayOpacity() },
+                styles.card,
+                styles.nextCard,
+                {
+                  opacity: nextCardOpacity,
+                  transform: [{ scale: nextCardScale }],
+                },
               ]}
+              pointerEvents="none"
             >
-              <Text style={styles.overlayText}>PASS</Text>
+              <Image
+                source={{ uri: nextUser.photo_urls?.[0] || '' }}
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
             </Animated.View>
+          )}
 
-            {/* Invite Overlay */}
+          {/* Current Card */}
+          {currentUser && (
             <Animated.View
+              {...(Platform.OS === 'web' ? {} : panResponder.panHandlers)}
+              onTouchStart={Platform.OS === 'web' ? handleWebStart : undefined}
+              onTouchMove={Platform.OS === 'web' ? handleWebMove : undefined}
+              onTouchEnd={Platform.OS === 'web' ? handleWebEnd : undefined}
+              {...(Platform.OS === 'web'
+                ? {
+                    onMouseDown: handleWebStart as any,
+                    onMouseMove: ((e: any) => {
+                      if (isDragging.current) handleWebMove(e);
+                    }) as any,
+                    onMouseUp: handleWebEnd as any,
+                    onMouseLeave: (() => {
+                      if (isDragging.current) {
+                        isDragging.current = false;
+                        position.flattenOffset();
+                        Animated.parallel([
+                          Animated.spring(position, {
+                            toValue: { x: 0, y: 0 },
+                            useNativeDriver: false,
+                            tension: 50,
+                            friction: 7,
+                          }),
+                          Animated.spring(rotation, {
+                            toValue: 0,
+                            useNativeDriver: false,
+                            tension: 50,
+                            friction: 7,
+                          }),
+                        ]).start();
+                      }
+                    }) as any,
+                  }
+                : {})}
+              pointerEvents={isAnimating ? 'none' : 'auto'}
               style={[
-                styles.overlay,
-                styles.inviteOverlay,
-                { opacity: getSwipeOverlayOpacity() },
+                styles.card,
+                {
+                  transform: [
+                    { translateX: position.x },
+                    { translateY: position.y },
+                    { rotate: cardRotation },
+                  ],
+                  opacity: cardOpacity,
+                },
               ]}
             >
-              <Text style={styles.overlayText}>INVITE</Text>
-            </Animated.View>
+              {/* Pass Overlay */}
+              <Animated.View
+                style={[
+                  styles.overlay,
+                  styles.passOverlay,
+                  { opacity: getPassOverlayOpacity() },
+                ]}
+              >
+                <Text style={styles.overlayText}>PASS</Text>
+              </Animated.View>
 
-            {/* Card Image */}
-            <Image
-              source={{ uri: photoUrl || '' }}
-              style={styles.cardImage}
-              resizeMode="cover"
-            />
+              {/* Invite Overlay */}
+              <Animated.View
+                style={[
+                  styles.overlay,
+                  styles.inviteOverlay,
+                  { opacity: getSwipeOverlayOpacity() },
+                ]}
+              >
+                <Text style={styles.overlayText}>INVITE</Text>
+              </Animated.View>
 
-            {/* Gradient Overlay */}
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.8)']}
-              style={styles.cardGradient}
-            />
+              {/* Card Image */}
+              <Image
+                source={{ uri: photoUrl || '' }}
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
 
-            {/* Card Content */}
-            <View style={styles.cardContent}>
-              <View style={styles.cardHeader}>
-                <View style={styles.nameRow}>
-                  <Text style={styles.cardName}>{currentUser.full_name}</Text>
-                  <View style={styles.onlineBadge} />
+              {/* Gradient Overlay */}
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                style={styles.cardGradient}
+              />
+
+              {/* Card Content */}
+              <View style={styles.cardContent}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.cardName}>{currentUser.full_name}</Text>
+                    <View style={styles.onlineBadge} />
+                  </View>
+                  {currentUser.college_name && (
+                    <View style={styles.collegeRow}>
+                      <GraduationCap size={16} color="#fff" />
+                      <Text style={styles.collegeText}>
+                        {currentUser.college_name}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                {currentUser.college_name && (
-                  <View style={styles.collegeRow}>
-                    <GraduationCap size={16} color="#fff" />
-                    <Text style={styles.collegeText}>{currentUser.college_name}</Text>
+
+                {location && (
+                  <View style={styles.locationRow}>
+                    <MapPin size={14} color="rgba(255,255,255,0.8)" />
+                    <Text style={styles.locationText}>{location}</Text>
+                  </View>
+                )}
+
+                {currentUser.bio && (
+                  <Text style={styles.cardBio} numberOfLines={2}>
+                    {currentUser.bio}
+                  </Text>
+                )}
+
+                {currentUser.interests && currentUser.interests.length > 0 && (
+                  <View style={styles.interestsContainer}>
+                    {currentUser.interests
+                      .slice(0, 3)
+                      .map((interest, index) => (
+                        <View key={index} style={styles.interestTag}>
+                          <Text style={styles.interestText}>{interest}</Text>
+                        </View>
+                      ))}
                   </View>
                 )}
               </View>
+            </Animated.View>
+          )}
+        </View>
+      ) : (
+        /* List View - 2 cards per row */
+        <FlatList
+          data={users.filter((_, index) => index >= currentIndex)}
+          renderItem={({ item }: { item: UserProfile }) => {
+            const photoUrl = item.photo_urls?.[0] || null;
+            const isSaved = savedUsers.has(item.id);
+            const isPassed = passedUsers.has(item.id);
+            const location = item.preferred_locations?.[0] || item.college_name;
 
-              {location && (
-                <View style={styles.locationRow}>
-                  <MapPin size={14} color="rgba(255,255,255,0.8)" />
-                  <Text style={styles.locationText}>{location}</Text>
-                </View>
-              )}
-
-              {currentUser.bio && (
-                <Text style={styles.cardBio} numberOfLines={2}>
-                  {currentUser.bio}
-                </Text>
-              )}
-
-              {currentUser.interests && currentUser.interests.length > 0 && (
-                <View style={styles.interestsContainer}>
-                  {currentUser.interests.slice(0, 3).map((interest, index) => (
-                    <View key={index} style={styles.interestTag}>
-                      <Text style={styles.interestText}>{interest}</Text>
+            return (
+              <TouchableOpacity
+                style={styles.listItem}
+                onPress={() => router.push(`/user/${item.id}`)}
+              >
+                {photoUrl ? (
+                  <Image
+                    source={{ uri: photoUrl }}
+                    style={styles.listItemImage}
+                  />
+                ) : (
+                  <View style={styles.listItemImagePlaceholder} />
+                )}
+                <View style={styles.listItemContent}>
+                  <Text style={styles.listItemName}>{item.full_name}</Text>
+                  {item.college_name && (
+                    <Text style={styles.listItemCollege}>
+                      {item.college_name}
+                    </Text>
+                  )}
+                  {item.bio && (
+                    <Text style={styles.listItemBio} numberOfLines={2}>
+                      {item.bio}
+                    </Text>
+                  )}
+                  {item.interests && item.interests.length > 0 && (
+                    <View style={styles.listItemInterests}>
+                      {item.interests
+                        .slice(0, 2)
+                        .map((interest: string, i: number) => (
+                          <View key={i} style={styles.listInterestTag}>
+                            <Text style={styles.listInterestText}>
+                              {interest}
+                            </Text>
+                          </View>
+                        ))}
                     </View>
-                  ))}
+                  )}
                 </View>
-              )}
+                <TouchableOpacity
+                  style={styles.listItemSaveButton}
+                  onPress={() => saveUser(item.id)}
+                >
+                  <Heart
+                    size={20}
+                    color={isSaved ? Colors.primary : Colors.textSecondary}
+                    fill={isSaved ? Colors.primary : 'none'}
+                  />
+                </TouchableOpacity>
+                {isPassed && (
+                  <View style={styles.passedBadge}>
+                    <Text style={styles.passedBadgeText}>Passed</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          }}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          numColumns={2}
+          columnWrapperStyle={styles.listRow}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      {viewMode === 'swipe' && (
+        <>
+          {/* Action Buttons */}
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.passButton}
+              onPress={handlePass}
+              disabled={isAnimating}
+            >
+              <X size={32} color="#FF3B30" strokeWidth={3} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.inviteButton}
+              onPress={handleInvite}
+              disabled={isAnimating}
+            >
+              <Heart
+                size={36}
+                color="#fff"
+                fill={
+                  isJustLooking && savedUsers.has(users[currentIndex]?.id)
+                    ? '#fff'
+                    : 'none'
+                }
+                strokeWidth={3}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Swipe Hint */}
+          <Text style={styles.swipeHint}>
+            {isJustLooking
+              ? 'Swipe right to save • Swipe left to pass'
+              : 'Swipe right to invite • Swipe left to pass'}
+          </Text>
+        </>
+      )}
+
+      {/* View Saved List Link (always visible) */}
+      <TouchableOpacity
+        style={styles.viewSavedLink}
+        onPress={() => router.push('/saved/collection')}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.viewSavedLinkText}>
+          View saved list ({savedUsers.size})
+        </Text>
+      </TouchableOpacity>
+
+      {/* Choice Modal */}
+      <Modal
+        visible={showChoiceModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleSkipModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={handleSkipModal}
+            >
+              <X size={24} color={Colors.textSecondary} />
+            </TouchableOpacity>
+
+            <Text style={styles.modalTitle}>Choose Your Path</Text>
+            <Text style={styles.modalSubtitle}>
+              How would you like to find people?
+            </Text>
+
+            <View style={styles.choiceContainer}>
+              {/* Option A: Select from Events */}
+              <TouchableOpacity
+                style={styles.choiceCard}
+                onPress={handleSelectEvent}
+                activeOpacity={0.8}
+              >
+                <View style={styles.choiceIconContainer}>
+                  <Calendar size={32} color={Colors.primary} />
+                </View>
+                <Text style={styles.choiceTitle}>Select from Events</Text>
+                <Text style={styles.choiceDescription}>
+                  Choose an event and find people who match
+                </Text>
+              </TouchableOpacity>
+
+              {/* Option B: Just Looking */}
+              <TouchableOpacity
+                style={styles.choiceCard}
+                onPress={handleJustLooking}
+                activeOpacity={0.8}
+              >
+                <View style={styles.choiceIconContainer}>
+                  <Eye size={32} color={Colors.primary} />
+                </View>
+                <Text style={styles.choiceTitle}>Just Looking</Text>
+                <Text style={styles.choiceDescription}>
+                  Browse people casually and save them for later
+                </Text>
+              </TouchableOpacity>
             </View>
-          </Animated.View>
-        )}
-      </View>
 
-      {/* Action Buttons */}
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.passButton}
-          onPress={handlePass}
-          disabled={isAnimating}
-        >
-          <X size={32} color="#FF3B30" strokeWidth={3} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.inviteButton}
-          onPress={handleInvite}
-          disabled={isAnimating}
-        >
-          <Heart size={36} color="#fff" fill="#fff" strokeWidth={3} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Swipe Hint */}
-      <Text style={styles.swipeHint}>
-        Swipe right to invite • Swipe left to pass
-      </Text>
+            <TouchableOpacity
+              style={styles.skipButton}
+              onPress={handleSkipModal}
+            >
+              <Text style={styles.skipButtonText}>Skip for now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -637,6 +1001,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  viewModeContainer: {
+    flexDirection: 'row',
+    gap: 4,
+    backgroundColor: '#F5F7FA',
+    borderRadius: 20,
+    padding: 4,
+  },
+  viewModeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewModeButtonActive: {
+    backgroundColor: Colors.primary,
+  },
   filterButton: {
     width: 44,
     height: 44,
@@ -653,11 +1034,116 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
+    flexDirection: 'row',
+    gap: 4,
   },
   inviteBadgeText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '700',
+  },
+  passedUsersButton: {
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  passedUsersText: {
+    fontSize: 12,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  listContainer: {
+    padding: 16,
+  },
+  listRow: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  listItem: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  listItemImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: Colors.border,
+  },
+  listItemImagePlaceholder: {
+    width: '100%',
+    height: 200,
+    backgroundColor: Colors.border,
+  },
+  listItemContent: {
+    padding: 12,
+  },
+  listItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  listItemCollege: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 6,
+  },
+  listItemBio: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  listItemInterests: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  listInterestTag: {
+    backgroundColor: Colors.backgroundSecondary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  listInterestText: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+  },
+  listItemSaveButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  passedBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(255, 59, 48, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  passedBadgeText: {
+    fontSize: 10,
+    color: '#fff',
+    fontWeight: '600',
   },
   searchSection: {
     paddingHorizontal: 20,
@@ -709,13 +1195,6 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
     overflow: 'hidden',
-    ...(Platform.OS === 'web' && {
-      cursor: 'grab',
-      userSelect: 'none',
-      WebkitUserSelect: 'none',
-      MozUserSelect: 'none',
-      msUserSelect: 'none',
-    }),
   },
   nextCard: {
     zIndex: 0,
@@ -870,7 +1349,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     color: '#999',
-    paddingBottom: 20,
+    paddingBottom: 4,
+  },
+  viewSavedLink: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  viewSavedLinkText: {
+    fontSize: 14,
+    color: Colors.primary,
+    textDecorationLine: 'underline',
+    fontWeight: '600',
   },
   completeContainer: {
     flex: 1,
@@ -916,5 +1405,82 @@ const styles = StyleSheet.create({
     color: '#3AFF6E',
     fontSize: 18,
     fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: BorderRadius.xl,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  closeButton: {
+    alignSelf: 'flex-end',
+    padding: 8,
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  choiceContainer: {
+    gap: 16,
+  },
+  choiceCard: {
+    backgroundColor: '#F5F7FA',
+    borderRadius: BorderRadius.lg,
+    padding: 24,
+    borderWidth: 2,
+    borderColor: '#E8EFF5',
+  },
+  choiceIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  choiceTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  choiceDescription: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  skipButton: {
+    marginTop: 16,
+    padding: 12,
+    alignItems: 'center',
+  },
+  skipButtonText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    fontWeight: '500',
   },
 });
