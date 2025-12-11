@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Image, Alert } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, X, MapPin, Calendar, Clock, Users, Heart, Save } from 'lucide-react-native';

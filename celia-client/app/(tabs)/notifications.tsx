@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, RefreshControl, Alert, Modal } from 'react-native';
 import { Bell, Check, X, Calendar, MapPin, Clock, AlertCircle, User as UserIcon } from 'lucide-react-native';
-import { supabase } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { router, useFocusEffect } from 'expo-router';
 import { Fonts } from '@/constants/theme';

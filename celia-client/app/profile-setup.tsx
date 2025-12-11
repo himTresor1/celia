@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image,
 import { router } from 'expo-router';
 import { Camera, X, MapPin, GraduationCap, Heart } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { supabase } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface College {

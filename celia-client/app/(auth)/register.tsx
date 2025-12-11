@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { Mail, Lock } from 'lucide-react-native';
 import { Colors, BorderRadius, SharedStyles } from '@/constants/theme';
 
 export default function RegisterScreen() {
+  const { signUp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'email' | 'verification'>('email');
@@ -44,51 +46,23 @@ export default function RegisterScreen() {
 
     setLoading(true);
 
-    setTimeout(() => {
-      setLoading(false);
-      router.replace('/profile-setup');
-    }, 500);
-  };
-
-  const handleVerifyCode = async () => {
-    setError(null);
-
-    if (!verificationCode.trim()) {
-      setError('Please enter the verification code');
-      return;
-    }
-
-    setLoading(true);
-
-    const { data, error: verifyError } = await supabase.auth.verifyOtp({
-      email,
-      token: verificationCode,
-      type: 'signup',
-    });
+    const { error: signUpError } = await signUp(email, password, fullName || email.split('@')[0]);
 
     setLoading(false);
 
-    if (verifyError) {
-      setError(verifyError.message);
+    if (signUpError) {
+      setError(signUpError.message);
     } else {
       router.replace('/profile-setup');
     }
   };
 
+  const handleVerifyCode = async () => {
+    router.replace('/profile-setup');
+  };
+
   const handleResendCode = async () => {
-    setError(null);
-    setLoading(true);
-
-    const { error: resendError } = await supabase.auth.resend({
-      type: 'signup',
-      email,
-    });
-
-    setLoading(false);
-
-    if (resendError) {
-      setError(resendError.message);
-    }
+    setError('Verification not implemented yet');
   };
 
   return (

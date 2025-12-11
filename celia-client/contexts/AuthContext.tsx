@@ -1,6 +1,14 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '@/lib/api';
+
+interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface Profile {
   id: string;
@@ -19,11 +27,12 @@ interface Profile {
 }
 
 interface AuthContextType {
-  session: Session | null;
+  session: { access_token: string } | null;
   user: User | null;
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   completeProfile: () => void;
@@ -32,13 +41,52 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<{ access_token: string } | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const loadStoredAuth = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      const storedUser = await AsyncStorage.getItem('user');
+
+      if (token && storedUser) {
+        setSession({ access_token: token });
+        setUser(JSON.parse(storedUser));
+        await refreshProfile();
+      }
+    } catch (error) {
+      console.error('Error loading stored auth:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const refreshProfile = async () => {
-    // No-op for UI-only mode
+    try {
+      const userData = await api.getCurrentUser();
+      const profileData: Profile = {
+        id: userData.id,
+        email: userData.email,
+        full_name: userData.fullName || null,
+        college_name: userData.collegeName || null,
+        major: userData.major || null,
+        graduation_year: userData.graduationYear || null,
+        bio: userData.bio || '',
+        avatar_url: userData.avatarUrl || null,
+        photo_urls: userData.photoUrls || [],
+        interests: userData.interests || null,
+        college_verified: userData.collegeVerified || false,
+        preferred_locations: userData.preferredLocations || null,
+        is_profile_completed: userData.isProfileCompleted || false,
+      };
+      setProfile(profileData);
+      setUser(userData);
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    }
   };
 
   const completeProfile = () => {
@@ -48,55 +96,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    setLoading(false);
+    loadStoredAuth();
   }, []);
 
-
   const signIn = async (email: string, password: string) => {
-    // Use a fixed UUID for the mock user (React Native doesn't support crypto.getRandomValues)
-    const mockUser = {
-      id: '00000000-0000-4000-8000-000000000000',
-      email: email,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      aud: 'authenticated',
-      role: 'authenticated',
-    } as User;
+    try {
+      const response = await api.login(email, password);
 
-    const mockSession = {
-      access_token: 'mock_token',
-      token_type: 'bearer',
-      expires_in: 3600,
-      expires_at: Date.now() + 3600000,
-      refresh_token: 'mock_refresh_token',
-      user: mockUser,
-    } as Session;
+      setSession({ access_token: response.access_token });
+      setUser(response.user);
 
-    setSession(mockSession);
-    setUser(mockUser);
+      await AsyncStorage.setItem('user', JSON.stringify(response.user));
 
-    const mockProfile: Profile = {
-      id: mockUser.id,
-      email: email,
-      full_name: 'Test User',
-      college_name: 'Harvard University',
-      major: 'Computer Science',
-      graduation_year: 2025,
-      bio: 'Test bio',
-      avatar_url: null,
-      photo_urls: ['https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg'],
-      interests: ['Technology & Gaming', 'Sports & Fitness'],
-      college_verified: true,
-      preferred_locations: ['Cambridge, MA'],
-      is_profile_completed: true,
-    };
+      await refreshProfile();
 
-    setProfile(mockProfile);
+      return { error: null };
+    } catch (error: any) {
+      return { error: new Error(error.response?.data?.message || 'Login failed') };
+    }
+  };
 
-    return { error: null };
+  const signUp = async (email: string, password: string, fullName: string) => {
+    try {
+      const response = await api.register({ email, password, fullName });
+
+      setSession({ access_token: response.access_token });
+      setUser(response.user);
+
+      await AsyncStorage.setItem('user', JSON.stringify(response.user));
+
+      await refreshProfile();
+
+      return { error: null };
+    } catch (error: any) {
+      return { error: new Error(error.response?.data?.message || 'Registration failed') };
+    }
   };
 
   const signOut = async () => {
+    await api.logout();
     setSession(null);
     setUser(null);
     setProfile(null);
@@ -110,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         signIn,
+        signUp,
         signOut,
         refreshProfile,
         completeProfile,

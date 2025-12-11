@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, FlatList } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { apiHelpers } from '@/lib/apiHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { Search, ChevronLeft, Check, User as UserIcon } from 'lucide-react-native';
 import { DUMMY_USERS } from '@/lib/dummyUsers';

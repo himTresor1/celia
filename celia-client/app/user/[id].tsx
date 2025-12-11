@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Modal, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { DUMMY_USERS } from '@/lib/dummyUsers';
 import {

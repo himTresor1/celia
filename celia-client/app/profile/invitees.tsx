@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Mail } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabaseEnhanced } from '@/lib/supabaseEnhanced';
+import { apiHelpers } from '@/lib/apiHelpers';
 import { theme } from '@/constants/theme';
 
 export default function InviteesListScreen() {
@@ -20,7 +20,7 @@ export default function InviteesListScreen() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabaseEnhanced.getInvitees(user.id);
+      const { data, error } = await apiHelpers.getInvitees(user.id);
       if (data) {
         setInvitees(data);
       }
@@ -34,7 +34,7 @@ export default function InviteesListScreen() {
 
   const renderItem = ({ item }: any) => {
     const invitee = item.invitee;
-    const rating = supabaseEnhanced.displayRating(invitee.attractiveness_score);
+    const rating = apiHelpers.displayRating(invitee.attractiveness_score);
 
     return (
       <TouchableOpacity

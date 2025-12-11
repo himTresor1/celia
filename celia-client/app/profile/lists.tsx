@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Heart, Users, Mail, ChevronRight } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabaseEnhanced } from '@/lib/supabaseEnhanced';
+import { apiHelpers } from '@/lib/apiHelpers';
 import { theme } from '@/constants/theme';
 
 export default function MyListsScreen() {
@@ -24,9 +24,9 @@ export default function MyListsScreen() {
 
     try {
       const [savedResult, friendsResult, inviteesResult] = await Promise.all([
-        supabaseEnhanced.getSavedUsers(user.id),
-        supabaseEnhanced.getFriends(user.id),
-        supabaseEnhanced.getInvitees(user.id),
+        apiHelpers.getSavedUsers(user.id),
+        apiHelpers.getFriends(user.id),
+        apiHelpers.getInvitees(user.id),
       ]);
 
       setCounts({

@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { User, LogOut, Settings, Heart, MapPin, GraduationCap, CheckCircle, Users, Mail, Calendar, ChevronRight } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
-import { supabaseEnhanced } from '@/lib/supabaseEnhanced';
+import { apiHelpers } from '@/lib/apiHelpers';
 
 export default function ProfileScreen() {
   const { profile, signOut, user } = useAuth();
@@ -18,7 +18,7 @@ export default function ProfileScreen() {
   const loadStats = async () => {
     if (!user) return;
 
-    const { data } = await supabaseEnhanced.getUserStats(user.id);
+    const { data } = await apiHelpers.getUserStats(user.id);
     if (data) {
       setStats(data);
     }

@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect, useRef } from 'react';
 import { Zap } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabaseEnhanced } from '@/lib/supabaseEnhanced';
+import { apiHelpers } from '@/lib/apiHelpers';
 import { theme } from '@/constants/theme';
 
 export default function SendPulseScreen() {
@@ -34,12 +34,12 @@ export default function SendPulseScreen() {
 
     setLoading(true);
     try {
-      const { error } = await supabaseEnhanced.sendEnergyPulse(user.id, userId as string);
+      const { error } = await apiHelpers.sendEnergyPulse(user.id, userId as string);
 
       if (error) {
         Alert.alert('Error', 'Failed to send energy pulse');
       } else {
-        await supabaseEnhanced.logEngagement(user.id, 'energy_pulse_send', 3);
+        await apiHelpers.logEngagement(user.id, 'energy_pulse_send', 3);
 
         Alert.alert(
           'Energy Pulse Sent! ⚡',

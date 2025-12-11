@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { X, Mail } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabaseEnhanced } from '@/lib/supabaseEnhanced';
+import { apiHelpers } from '@/lib/apiHelpers';
 import { theme } from '@/constants/theme';
 
 export default function SavedListScreen() {
@@ -20,7 +20,7 @@ export default function SavedListScreen() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabaseEnhanced.getSavedUsers(user.id);
+      const { data, error } = await apiHelpers.getSavedUsers(user.id);
       if (data) {
         setSavedUsers(data);
       }
@@ -35,7 +35,7 @@ export default function SavedListScreen() {
   const handleRemove = async (savedUserId: string) => {
     if (!user) return;
 
-    const { error } = await supabaseEnhanced.removeFromSaved(user.id, savedUserId);
+    const { error } = await apiHelpers.removeFromSaved(user.id, savedUserId);
     if (!error) {
       setSavedUsers((prev) => prev.filter((item) => item.saved_user_id !== savedUserId));
     }
@@ -43,7 +43,7 @@ export default function SavedListScreen() {
 
   const renderItem = ({ item }: any) => {
     const savedUser = item.saved_user;
-    const rating = supabaseEnhanced.displayRating(savedUser.attractiveness_score);
+    const rating = apiHelpers.displayRating(savedUser.attractiveness_score);
 
     return (
       <TouchableOpacity

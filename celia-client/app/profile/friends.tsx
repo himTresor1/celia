@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { UserMinus, Zap } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabaseEnhanced } from '@/lib/supabaseEnhanced';
+import { apiHelpers } from '@/lib/apiHelpers';
 import { theme } from '@/constants/theme';
 
 export default function FriendsListScreen() {
@@ -22,8 +22,8 @@ export default function FriendsListScreen() {
 
     try {
       const [friendsResult, pendingResult] = await Promise.all([
-        supabaseEnhanced.getFriends(user.id),
-        supabaseEnhanced.getPendingFriendRequests(user.id),
+        apiHelpers.getFriends(user.id),
+        apiHelpers.getPendingFriendRequests(user.id),
       ]);
 
       if (friendsResult.data) setFriends(friendsResult.data);
@@ -48,7 +48,7 @@ export default function FriendsListScreen() {
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            const { error } = await supabaseEnhanced.removeFriend(user.id, friendId);
+            const { error } = await apiHelpers.removeFriend(user.id, friendId);
             if (!error) {
               setFriends((prev) => prev.filter((f) => f.friend.id !== friendId));
             }
@@ -60,7 +60,7 @@ export default function FriendsListScreen() {
 
   const renderFriend = ({ item }: any) => {
     const friend = item.friend;
-    const rating = supabaseEnhanced.displayRating(friend.attractiveness_score);
+    const rating = apiHelpers.displayRating(friend.attractiveness_score);
 
     return (
       <TouchableOpacity
@@ -111,7 +111,7 @@ export default function FriendsListScreen() {
           <TouchableOpacity
             style={styles.pulseButton}
             onPress={async () => {
-              await supabaseEnhanced.sendEnergyPulse(user!.id, otherUser.id);
+              await apiHelpers.sendEnergyPulse(user!.id, otherUser.id);
               loadFriends();
             }}
           >

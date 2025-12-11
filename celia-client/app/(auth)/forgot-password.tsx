@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+// API client can be added here if password reset is implemented
 import { Mail, ArrowLeft } from 'lucide-react-native';
 import { Colors } from '@/constants/theme';
 
