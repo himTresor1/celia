@@ -39,6 +39,13 @@ export const BorderRadius = {
   full: 9999,
 };
 
+export const theme = {
+  colors: Colors,
+  fonts: Fonts,
+  spacing: Spacing,
+  borderRadius: BorderRadius,
+};
+
 export const SharedStyles = StyleSheet.create({
   button: {
     backgroundColor: Colors.primary,
