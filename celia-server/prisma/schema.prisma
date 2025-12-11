@@ -8,31 +8,122 @@ datasource db {
 }
 
 model User {
-  id                 String   @id @default(uuid())
-  email              String   @unique
-  password           String
-  fullName           String   @map("full_name")
-  collegeName        String?  @map("college_name")
-  major              String?
-  graduationYear     Int?     @map("graduation_year")
-  bio                String   @default("")
-  avatarUrl          String?  @map("avatar_url")
-  photoUrls          Json     @default("[]") @map("photo_urls")
-  interests          String[] @default([])
-  collegeVerified    Boolean  @default(false) @map("college_verified")
-  preferredLocations String[] @default([]) @map("preferred_locations")
-  profileCompleted   Boolean  @default(false) @map("profile_completed")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  password            String
+  fullName            String    @map("full_name")
+  dateOfBirth         DateTime? @map("date_of_birth") @db.Date
+  age                 Int?
+  gender              String?
+  collegeName         String?   @map("college_name")
+  collegeId           String?   @map("college_id")
+  major               String?
+  graduationYear      Int?      @map("graduation_year")
+  bio                 String    @default("")
+  avatarUrl           String?   @map("avatar_url")
+  photoUrls           Json      @default("[]") @map("photo_urls")
+  interests           String[]  @default([])
+  collegeVerified     Boolean   @default(false) @map("college_verified")
+  preferredLocations  String[]  @default([]) @map("preferred_locations")
+  profileCompleted    Boolean   @default(false) @map("profile_completed")
 
-  hostedEvents        Event[]            @relation("HostedEvents")
-  sentInvitations     EventInvitation[]  @relation("SentInvitations")
-  receivedInvitations EventInvitation[]  @relation("ReceivedInvitations")
-  eventAttendances    EventAttendee[]
+  attractivenessScore Int       @default(0) @map("attractiveness_score")
+  engagementPoints    Int       @default(0) @map("engagement_points")
+  socialStreakDays    Int       @default(0) @map("social_streak_days")
+  lastActiveDate      DateTime? @map("last_active_date") @db.Date
+  appOpensCount       Int       @default(0) @map("app_opens_count")
+  profileCompleteness Int       @default(0) @map("profile_completeness")
+
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  college                  College?            @relation(fields: [collegeId], references: [id])
+  hostedEvents             Event[]             @relation("HostedEvents")
+  sentInvitations          EventInvitation[]   @relation("SentInvitations")
+  receivedInvitations      EventInvitation[]   @relation("ReceivedInvitations")
+  eventAttendances         EventAttendee[]
+  engagementLogs           EngagementLog[]
+  friendships1             Friendship[]        @relation("User1Friendships")
+  friendships2             Friendship[]        @relation("User2Friendships")
+  initiatedFriendships     Friendship[]        @relation("InitiatedFriendships")
+  savedUsers               SavedUser[]         @relation("UserSaved")
+  savedByUsers             SavedUser[]         @relation("SavedByUsers")
+  myInvitees               UserInvitee[]       @relation("UserInvitees")
+  invitedByUsers           UserInvitee[]       @relation("InvitedByUsers")
 
   @@index([email])
   @@index([collegeName])
+  @@index([collegeId])
+  @@index([attractivenessScore])
+  @@index([gender])
+  @@index([age])
   @@map("users")
+}
+
+model Friendship {
+  id                 String    @id @default(uuid())
+  user1Id            String    @map("user1_id")
+  user2Id            String    @map("user2_id")
+  status             String    @default("pending")
+  connectionMethod   String    @map("connection_method")
+  initiatedBy        String    @map("initiated_by")
+  pulseSentByUser1   DateTime? @map("pulse_sent_by_user1")
+  pulseSentByUser2   DateTime? @map("pulse_sent_by_user2")
+  pulseExpiresAt     DateTime? @map("pulse_expires_at")
+  qrCodeToken        String?   @unique @map("qr_code_token")
+  qrGeneratedAt      DateTime? @map("qr_generated_at")
+  qrScannedAt        DateTime? @map("qr_scanned_at")
+  streakDayRequired  Int?      @map("streak_day_required")
+  user1StreakMet     Boolean   @default(false) @map("user1_streak_met")
+  user2StreakMet     Boolean   @default(false) @map("user2_streak_met")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  completedAt        DateTime? @map("completed_at")
+
+  user1     User @relation("User1Friendships", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2     User @relation("User2Friendships", fields: [user2Id], references: [id], onDelete: Cascade)
+  initiator User @relation("InitiatedFriendships", fields: [initiatedBy], references: [id], onDelete: Cascade)
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id])
+  @@index([user2Id])
+  @@index([status])
+  @@map("friendships")
+}
+
+model SavedUser {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  savedUserId      String   @map("saved_user_id")
+  savedFromContext String?  @map("saved_from_context")
+  notes            String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user      User @relation("UserSaved", fields: [userId], references: [id], onDelete: Cascade)
+  savedUser User @relation("SavedByUsers", fields: [savedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, savedUserId])
+  @@index([userId])
+  @@index([savedUserId])
+  @@index([createdAt])
+  @@map("saved_users")
+}
+
+model UserInvitee {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  inviteeId        String   @map("invitee_id")
+  firstInvitedAt   DateTime @default(now()) @map("first_invited_at")
+  lastInvitedAt    DateTime @default(now()) @map("last_invited_at")
+  totalInvitations Int      @default(1) @map("total_invitations")
+  eventsInvitedTo  String[] @default([]) @map("events_invited_to")
+
+  user    User @relation("UserInvitees", fields: [userId], references: [id], onDelete: Cascade)
+  invitee User @relation("InvitedByUsers", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, inviteeId])
+  @@index([userId])
+  @@index([inviteeId])
+  @@map("user_invitees")
 }
 
 model Event {
@@ -53,6 +144,8 @@ model Event {
   isPublic           Boolean   @default(true) @map("is_public")
   status             String    @default("draft")
   cancellationReason String?   @map("cancellation_reason")
+  externalLink       String?   @map("external_link")
+  externalLinkType   String?   @map("external_link_type")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
@@ -69,26 +162,17 @@ model Event {
   @@map("events")
 }
 
-model EventCategory {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  icon      String?
-  createdAt DateTime @default(now()) @map("created_at")
-
-  events Event[]
-
-  @@map("event_categories")
-}
-
 model EventInvitation {
-  id              String   @id @default(uuid())
-  eventId         String   @map("event_id")
-  inviterId       String   @map("inviter_id")
-  inviteeId       String   @map("invitee_id")
-  status          String   @default("pending")
-  personalMessage String?  @map("personal_message")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id              String    @id @default(uuid())
+  eventId         String    @map("event_id")
+  inviterId       String    @map("inviter_id")
+  inviteeId       String    @map("invitee_id")
+  status          String    @default("pending")
+  personalMessage String?   @map("personal_message")
+  declineReason   String?   @map("decline_reason")
+  respondedAt     DateTime? @map("responded_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   inviter User  @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
@@ -117,6 +201,33 @@ model EventAttendee {
   @@map("event_attendees")
 }
 
+model EngagementLog {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  actionType   String   @map("action_type")
+  pointsEarned Int      @map("points_earned")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@map("engagement_logs")
+}
+
+model EventCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  icon      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  events Event[]
+
+  @@map("event_categories")
+}
+
 model InterestCategory {
   id        String   @id @default(uuid())
   name      String   @unique
@@ -131,6 +242,8 @@ model College {
   domain    String?
   location  String?
   createdAt DateTime @default(now()) @map("created_at")
+
+  users User[]
 
   @@map("colleges")
 }

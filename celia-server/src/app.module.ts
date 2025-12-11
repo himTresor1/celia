@@ -7,6 +7,10 @@ import { UsersModule } from './users/users.module';
 import { EventsModule } from './events/events.module';
 import { InvitationsModule } from './invitations/invitations.module';
 import { CategoriesModule } from './categories/categories.module';
+import { ScoringModule } from './scoring/scoring.module';
+import { FriendsModule } from './friends/friends.module';
+import { ListsModule } from './lists/lists.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
 
 @Module({
   imports: [
@@ -25,6 +29,10 @@ import { CategoriesModule } from './categories/categories.module';
     EventsModule,
     InvitationsModule,
     CategoriesModule,
+    ScoringModule,
+    FriendsModule,
+    ListsModule,
+    RecommendationsModule,
   ],
 })
 export class AppModule {}

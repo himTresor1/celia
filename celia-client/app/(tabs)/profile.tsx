@@ -1,10 +1,28 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
-import { User, LogOut, Settings, Heart, MapPin, GraduationCap, CheckCircle } from 'lucide-react-native';
+import { User, LogOut, Settings, Heart, MapPin, GraduationCap, CheckCircle, Users, Mail, Calendar, ChevronRight } from 'lucide-react-native';
+import { useState, useEffect } from 'react';
+import { supabaseEnhanced } from '@/lib/supabaseEnhanced';
 
 export default function ProfileScreen() {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, user } = useAuth();
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) {
+      loadStats();
+    }
+  }, [user]);
+
+  const loadStats = async () => {
+    if (!user) return;
+
+    const { data } = await supabaseEnhanced.getUserStats(user.id);
+    if (data) {
+      setStats(data);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -57,6 +75,47 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
+
+        {stats && (
+          <View style={styles.metricsSection}>
+            <View style={styles.metricCard}>
+              <Calendar size={24} color="#3AFF6E" />
+              <Text style={styles.metricNumber}>{stats.eventsCreated}</Text>
+              <Text style={styles.metricLabel}>Events Created</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Mail size={24} color="#FF9500" />
+              <Text style={styles.metricNumber}>{stats.invitationsReceived}</Text>
+              <Text style={styles.metricLabel}>Invitations</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Users size={24} color="#007AFF" />
+              <Text style={styles.metricNumber}>{stats.friendsCount}</Text>
+              <Text style={styles.metricLabel}>Friends</Text>
+            </View>
+          </View>
+        )}
+
+        {stats && (
+          <View style={styles.attractivenessSection}>
+            <Text style={styles.attractivenessLabel}>Attractiveness Rating</Text>
+            <Text style={styles.attractivenessScore}>⭐ {stats.rating}/10</Text>
+            <Text style={styles.streakText}>
+              🔥 {stats.socialStreakDays || 0} day streak
+            </Text>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={styles.listsButton}
+          onPress={() => router.push('/profile/lists')}
+        >
+          <View style={styles.listsButtonContent}>
+            <Users size={24} color="#3AFF6E" />
+            <Text style={styles.listsButtonText}>My Lists</Text>
+          </View>
+          <ChevronRight size={24} color="#666" />
+        </TouchableOpacity>
 
         {profile?.college_name && (
           <View style={styles.section}>
@@ -328,5 +387,77 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FF3B30',
+  },
+  metricsSection: {
+    flexDirection: 'row',
+    padding: 24,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  metricCard: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+  },
+  metricNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginTop: 8,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  attractivenessSection: {
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#f9f9f9',
+    marginHorizontal: 24,
+    marginBottom: 16,
+    borderRadius: 16,
+  },
+  attractivenessLabel: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 8,
+  },
+  attractivenessScore: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#3AFF6E',
+    marginBottom: 8,
+  },
+  streakText: {
+    fontSize: 16,
+    color: '#FF9500',
+    fontWeight: '600',
+  },
+  listsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 24,
+    marginBottom: 16,
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3AFF6E',
+  },
+  listsButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  listsButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a1a1a',
   },
 });

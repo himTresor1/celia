@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ScoringService } from '../scoring/scoring.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private scoring: ScoringService,
+  ) {}
 
   async findAll(search?: string, interests?: string[], college?: string) {
     const where: any = {};
@@ -33,6 +37,8 @@ export class UsersService {
         id: true,
         email: true,
         fullName: true,
+        age: true,
+        gender: true,
         collegeName: true,
         major: true,
         graduationYear: true,
@@ -43,10 +49,11 @@ export class UsersService {
         preferredLocations: true,
         collegeVerified: true,
         profileCompleted: true,
+        attractivenessScore: true,
         createdAt: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        attractivenessScore: 'desc',
       },
     });
   }
@@ -58,7 +65,11 @@ export class UsersService {
         id: true,
         email: true,
         fullName: true,
+        dateOfBirth: true,
+        age: true,
+        gender: true,
         collegeName: true,
+        collegeId: true,
         major: true,
         graduationYear: true,
         bio: true,
@@ -68,12 +79,18 @@ export class UsersService {
         preferredLocations: true,
         collegeVerified: true,
         profileCompleted: true,
+        attractivenessScore: true,
+        engagementPoints: true,
+        socialStreakDays: true,
         createdAt: true,
         updatedAt: true,
         _count: {
           select: {
             hostedEvents: true,
             eventAttendances: true,
+            receivedInvitations: true,
+            friendships1: { where: { status: 'active' } },
+            friendships2: { where: { status: 'active' } },
           },
         },
       },
@@ -83,7 +100,13 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    const friendsCount = user._count.friendships1 + user._count.friendships2;
+
+    return {
+      ...user,
+      friendsCount,
+      rating: this.scoring.displayRating(user.attractivenessScore),
+    };
   }
 
   async update(id: string, currentUserId: string, dto: UpdateUserDto) {
@@ -106,7 +129,11 @@ export class UsersService {
         id: true,
         email: true,
         fullName: true,
+        dateOfBirth: true,
+        age: true,
+        gender: true,
         collegeName: true,
+        collegeId: true,
         major: true,
         graduationYear: true,
         bio: true,
@@ -116,10 +143,15 @@ export class UsersService {
         preferredLocations: true,
         collegeVerified: true,
         profileCompleted: true,
+        attractivenessScore: true,
+        engagementPoints: true,
+        socialStreakDays: true,
         createdAt: true,
         updatedAt: true,
       },
     });
+
+    await this.scoring.logEngagement(id, 'profile_update', 10);
 
     return updatedUser;
   }
@@ -127,6 +159,17 @@ export class UsersService {
   async getUserStats(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
+      select: {
+        attractivenessScore: true,
+        engagementPoints: true,
+        socialStreakDays: true,
+        _count: {
+          select: {
+            friendships1: { where: { status: 'active' } },
+            friendships2: { where: { status: 'active' } },
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -149,11 +192,18 @@ export class UsersService {
         }),
       ]);
 
+    const friendsCount = user._count.friendships1 + user._count.friendships2;
+
     return {
       hostedEvents,
       attendedEvents,
       receivedInvitations,
       sentInvitations,
+      friendsCount,
+      attractivenessScore: user.attractivenessScore,
+      rating: this.scoring.displayRating(user.attractivenessScore),
+      engagementPoints: user.engagementPoints,
+      socialStreakDays: user.socialStreakDays,
     };
   }
 

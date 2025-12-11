@@ -1,0 +1,210 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+interface AttractivenessWeights {
+  profileCompleteness: number;
+  friendsCount: number;
+  eventsAttended: number;
+  invitationRatio: number;
+  engagementPoints: number;
+  socialStreak: number;
+}
+
+@Injectable()
+export class ScoringService {
+  constructor(private prisma: PrismaService) {}
+
+  private readonly WEIGHTS: AttractivenessWeights = {
+    profileCompleteness: 25,
+    friendsCount: 20,
+    eventsAttended: 15,
+    invitationRatio: 15,
+    engagementPoints: 15,
+    socialStreak: 10,
+  };
+
+  async calculateAttractivenessScore(userId: string): Promise<number> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        _count: {
+          select: {
+            friendships1: { where: { status: 'active' } },
+            friendships2: { where: { status: 'active' } },
+            eventAttendances: true,
+            receivedInvitations: true,
+          },
+        },
+      },
+    });
+
+    if (!user) return 0;
+
+    let score = 0;
+
+    const fields = [
+      user.fullName && user.fullName.length > 0,
+      user.bio && user.bio.length >= 50,
+      user.collegeName,
+      user.major,
+      user.interests.length >= 3,
+      (user.photoUrls as any[]).length >= 1,
+      user.preferredLocations.length >= 1,
+    ];
+    const completedFields = fields.filter(Boolean).length;
+    score += (completedFields / fields.length) * this.WEIGHTS.profileCompleteness;
+
+    const friendsCount = user._count.friendships1 + user._count.friendships2;
+    score += Math.min(
+      this.WEIGHTS.friendsCount,
+      Math.log10(friendsCount + 1) * 6,
+    );
+
+    const eventsAttended = user._count.eventAttendances;
+    score += Math.min(
+      this.WEIGHTS.eventsAttended,
+      Math.log10(eventsAttended + 1) * 5,
+    );
+
+    const invitationsReceived = user._count.receivedInvitations;
+    const invitationsAccepted = await this.prisma.eventInvitation.count({
+      where: { inviteeId: userId, status: 'going' },
+    });
+    if (invitationsReceived > 0) {
+      score +=
+        (invitationsAccepted / invitationsReceived) *
+        this.WEIGHTS.invitationRatio;
+    }
+
+    score += Math.min(
+      this.WEIGHTS.engagementPoints,
+      (user.engagementPoints / 1000) * this.WEIGHTS.engagementPoints,
+    );
+
+    score += Math.min(
+      this.WEIGHTS.socialStreak,
+      (user.socialStreakDays / 30) * this.WEIGHTS.socialStreak,
+    );
+
+    return Math.round(score);
+  }
+
+  displayRating(score: number): number {
+    if (score < 10) return 1;
+    if (score < 20) return 2;
+    if (score < 30) return 3;
+    if (score < 40) return 4;
+    if (score < 50) return 5;
+    if (score < 60) return 6;
+    if (score < 70) return 7;
+    if (score < 80) return 8;
+    if (score < 90) return 9;
+    return 10;
+  }
+
+  async recalculateUserScore(userId: string): Promise<void> {
+    const score = await this.calculateAttractivenessScore(userId);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { attractivenessScore: score },
+    });
+  }
+
+  async logEngagement(
+    userId: string,
+    actionType: string,
+    pointsEarned: number,
+    metadata?: any,
+  ): Promise<void> {
+    await this.prisma.engagementLog.create({
+      data: {
+        userId,
+        actionType,
+        pointsEarned,
+        metadata,
+      },
+    });
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        engagementPoints: { increment: pointsEarned },
+      },
+    });
+
+    await this.recalculateUserScore(userId);
+  }
+
+  async updateStreak(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const lastActive = user.lastActiveDate
+      ? new Date(user.lastActiveDate)
+      : null;
+
+    if (lastActive) {
+      lastActive.setHours(0, 0, 0, 0);
+    }
+
+    if (!lastActive || lastActive.getTime() !== today.getTime()) {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      let newStreak = user.socialStreakDays;
+
+      if (lastActive && lastActive.getTime() === yesterday.getTime()) {
+        newStreak += 1;
+      } else if (!lastActive || lastActive.getTime() < yesterday.getTime()) {
+        newStreak = 1;
+      }
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          lastActiveDate: today,
+          socialStreakDays: newStreak,
+          appOpensCount: { increment: 1 },
+        },
+      });
+
+      if (newStreak === 7) {
+        await this.logEngagement(userId, 'streak_7_days', 50);
+      } else if (newStreak === 30) {
+        await this.logEngagement(userId, 'streak_30_days', 200);
+      } else if (newStreak > 1) {
+        await this.logEngagement(userId, 'app_open', 5);
+      }
+    }
+  }
+
+  async getUserEngagementStats(userId: string): Promise<any> {
+    const [logs, user] = await Promise.all([
+      this.prisma.engagementLog.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          engagementPoints: true,
+          socialStreakDays: true,
+          attractivenessScore: true,
+          lastActiveDate: true,
+        },
+      }),
+    ]);
+
+    return {
+      user,
+      recentActivity: logs,
+      rating: this.displayRating(user?.attractivenessScore || 0),
+    };
+  }
+}

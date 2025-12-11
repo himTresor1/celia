@@ -5,6 +5,8 @@ import {
   IsInt,
   IsArray,
   IsBoolean,
+  IsDateString,
+  IsEnum,
   Min,
   Max,
   MinLength,
@@ -104,4 +106,28 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   profileCompleted?: boolean;
+
+  @ApiPropertyOptional({
+    example: '2000-01-15',
+    description: 'Date of birth (YYYY-MM-DD)',
+  })
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
+
+  @ApiPropertyOptional({
+    example: 'male',
+    description: 'Gender (male, female, non-binary, prefer-not-to-say)',
+  })
+  @IsOptional()
+  @IsEnum(['male', 'female', 'non-binary', 'prefer-not-to-say'])
+  gender?: string;
+
+  @ApiPropertyOptional({
+    example: 'uuid-of-college',
+    description: 'College ID',
+  })
+  @IsOptional()
+  @IsString()
+  collegeId?: string;
 }

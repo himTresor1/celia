@@ -131,4 +131,20 @@ export class CreateEventDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://forms.google.com/event-signup',
+    description: 'External link for event (Google Form, Eventbrite, WhatsApp, etc.)',
+  })
+  @IsOptional()
+  @IsString()
+  externalLink?: string;
+
+  @ApiPropertyOptional({
+    example: 'google_form',
+    description: 'Type of external link (google_form, eventbrite, whatsapp, website, other)',
+  })
+  @IsOptional()
+  @IsString()
+  externalLinkType?: string;
 }
