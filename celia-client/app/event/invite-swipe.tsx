@@ -19,6 +19,7 @@ import { Colors, Fonts, BorderRadius } from '@/constants/theme';
 import { DUMMY_USER_UUIDS, DUMMY_USERS } from '@/lib/dummyUsers';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { api } from '@/lib/api';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 90;
@@ -104,13 +105,19 @@ export default function InviteSwipeScreen() {
     })
   ).current;
 
-  const handleInvite = () => {
+  const handleInvite = async () => {
     if (isAnimating || currentIndex >= users.length) return;
 
     const user = users[currentIndex];
     setInvited((prev) => [...prev, user.id]);
     setIsAnimating(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      await api.addToSaved({ userId: user.id });
+    } catch (error) {
+      console.error('Failed to save user to list:', error);
+    }
 
     Animated.parallel([
       Animated.timing(position, {

@@ -76,33 +76,21 @@ export default function EventDetailScreen() {
   }, [guestFilter, searchQuery, invitations]);
 
   const fetchEventDetails = async () => {
-    const { data, error } = await supabase
-      .from('events')
-      .select(`
-        *,
-        event_categories (name)
-      `)
-      .eq('id', id)
-      .maybeSingle();
-
-    if (!error && data) {
-      setEvent(data);
+    try {
+      const data = await api.getEvent(id);
+      setEvent(data as any);
+    } catch (error) {
+      console.error('Failed to fetch event:', error);
     }
     setLoading(false);
   };
 
   const fetchInvitations = async () => {
-    const { data, error } = await supabase
-      .from('event_invitations')
-      .select(`
-        *,
-        profiles:invitee_id (id, full_name, email, photo_urls)
-      `)
-      .eq('event_id', id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
+    try {
+      const data = await api.getEventInvitations(id);
       setInvitations(data as any);
+    } catch (error) {
+      console.error('Failed to fetch invitations:', error);
     }
   };
 
@@ -134,13 +122,11 @@ export default function EventDetailScreen() {
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            const { error } = await supabase
-              .from('event_invitations')
-              .delete()
-              .eq('id', invitationId);
-
-            if (!error) {
+            try {
+              await api.deleteInvitation(invitationId);
               fetchInvitations();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to remove guest');
             }
           },
         },
@@ -154,19 +140,15 @@ export default function EventDetailScreen() {
       return;
     }
 
-    const { error } = await supabase
-      .from('events')
-      .update({
+    try {
+      await api.updateEvent(id, {
         status: 'cancelled',
-        cancellation_reason: cancellationReason.trim(),
-      })
-      .eq('id', id);
-
-    if (!error) {
+        cancellationReason: cancellationReason.trim(),
+      });
       setShowCancelModal(false);
       router.back();
-    } else {
-      Alert.alert('Error', error.message);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to cancel event');
     }
   };
 

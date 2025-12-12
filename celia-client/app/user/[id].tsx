@@ -66,72 +66,52 @@ export default function UserProfileScreen() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (!error && data) {
-      setProfile(data);
+    try {
+      const data = await api.getUser(id);
+      setProfile(data as any);
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
     }
     setLoading(false);
   };
 
   const fetchStats = async () => {
-    const { data: hostedEvents } = await supabase
-      .from('events')
-      .select('id', { count: 'exact', head: true })
-      .eq('host_id', id)
-      .eq('status', 'active');
+    try {
+      const hostedEvents = await api.getUserHostedEvents(id);
+      const attendedEvents = await api.getUserAttendingEvents(id);
 
-    const { data: attendedEvents } = await supabase
-      .from('event_invitations')
-      .select('id', { count: 'exact', head: true })
-      .eq('invitee_id', id)
-      .eq('status', 'going');
-
-    setStats({
-      eventsHosted: hostedEvents?.length || 0,
-      eventsAttended: attendedEvents?.length || 0,
-    });
+      setStats({
+        eventsHosted: hostedEvents.length,
+        eventsAttended: attendedEvents.length,
+      });
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
   };
 
   const fetchMyEvents = async () => {
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data, error } = await supabase
-      .from('events')
-      .select('id, name, event_date, location_name, photo_urls')
-      .eq('host_id', user?.id)
-      .eq('status', 'active')
-      .gte('event_date', today)
-      .order('event_date', { ascending: true })
-      .limit(10);
-
-    if (!error && data) {
+    try {
+      const data = await api.getMyEvents();
       setMyEvents(data);
+    } catch (error) {
+      console.error('Failed to fetch my events:', error);
     }
   };
 
   const handleInviteToEvent = async (eventId: string) => {
-    const { error } = await supabase
-      .from('event_invitations')
-      .insert({
-        event_id: eventId,
-        invitee_id: id,
-        status: 'pending',
+    try {
+      await api.createInvitation({
+        eventId,
+        inviteeId: id,
       });
-
-    if (error) {
-      if (error.code === '23505') {
-        Alert.alert('Already Invited', 'This person is already invited to this event.');
-      } else {
-        Alert.alert('Error', error.message);
-      }
-    } else {
       Alert.alert('Success', `Invitation sent to ${profile?.full_name}!`);
       setShowInviteModal(false);
+    } catch (error: any) {
+      if (error.message?.includes('already')) {
+        Alert.alert('Already Invited', 'This person is already invited to this event.');
+      } else {
+        Alert.alert('Error', error.message || 'Failed to send invitation');
+      }
     }
   };
 

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Ima
 import { Calendar, MapPin, Users, Clock, FileText } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
+import { api } from '@/lib/api';
 
 interface Event {
   id: string;
@@ -34,93 +35,62 @@ interface InvitationStats {
 export default function EventsScreen() {
   const { user } = useAuth();
 
-  // MOCK DATA - Events you created
-  const mockEvents: Event[] = [
-    {
-      id: 'my-event-1',
-      name: 'Tech Networking Mixer',
-      description: 'Connect with fellow tech enthusiasts and entrepreneurs. Bring your business cards!',
-      event_date: '2025-11-28',
-      start_time: '6:00 PM',
-      end_time: '9:00 PM',
-      location_name: 'Innovation Hub, Building 7',
-      photo_urls: ['https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg'],
-      category_id: 'cat-1',
-      capacity_limit: 50,
-      is_public: false,
-      status: 'active',
-      host_id: user?.id || '',
-      created_at: new Date().toISOString(),
-      event_categories: { name: 'Networking' },
-    },
-    {
-      id: 'my-event-2',
-      name: 'Saturday Beach Volleyball',
-      description: 'Casual volleyball game at the beach. All skill levels welcome!',
-      event_date: '2025-11-30',
-      start_time: '2:00 PM',
-      end_time: '5:00 PM',
-      location_name: 'Santa Monica Beach, Court 3',
-      photo_urls: ['https://images.pexels.com/photos/1263348/pexels-photo-1263348.jpeg'],
-      category_id: 'cat-2',
-      capacity_limit: 12,
-      is_public: true,
-      status: 'active',
-      host_id: user?.id || '',
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      event_categories: { name: 'Sports' },
-    },
-    {
-      id: 'my-event-3',
-      name: 'Friendsgiving Potluck',
-      description: 'Early Thanksgiving celebration with friends. Bring your favorite dish to share!',
-      event_date: '2025-11-27',
-      start_time: '5:00 PM',
-      end_time: '10:00 PM',
-      location_name: '456 Elm Street, Apt 12',
-      photo_urls: ['https://images.pexels.com/photos/3184183/pexels-photo-3184183.jpeg'],
-      category_id: 'cat-3',
-      capacity_limit: 20,
-      is_public: false,
-      status: 'active',
-      host_id: user?.id || '',
-      created_at: new Date(Date.now() - 172800000).toISOString(),
-      event_categories: { name: 'Social' },
-    },
-  ];
-
-  // MOCK INVITATION STATS - Who you invited and their responses
-  const mockInvitationStats: Record<string, InvitationStats> = {
-    'my-event-1': { total: 15, going: 8, pending: 5, declined: 2 },
-    'my-event-2': { total: 10, going: 7, pending: 2, declined: 1 },
-    'my-event-3': { total: 18, going: 12, pending: 4, declined: 2 },
-  };
-
-  const [events, setEvents] = useState<Event[]>(mockEvents);
-  const [invitationStats] = useState<Record<string, InvitationStats>>(mockInvitationStats);
-  const [loading] = useState(false);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [invitationStats, setInvitationStats] = useState<Record<string, InvitationStats>>({});
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<'upcoming' | 'past' | 'drafts'>('upcoming');
 
   useEffect(() => {
-    // Filter events based on tab
-    const today = new Date().toISOString().split('T')[0];
-    let filtered = [...mockEvents];
-
-    if (tab === 'upcoming') {
-      filtered = mockEvents.filter(e => e.status === 'active' && e.event_date >= today);
-    } else if (tab === 'past') {
-      filtered = mockEvents.filter(e => e.status === 'active' && e.event_date < today);
-    } else if (tab === 'drafts') {
-      filtered = mockEvents.filter(e => e.status === 'draft');
-    }
-
-    setEvents(filtered);
+    fetchEvents();
   }, [tab]);
 
-  const onRefresh = () => {
+  const fetchEvents = async () => {
+    if (!user?.id) return;
+
+    try {
+      setLoading(true);
+      const data = await api.getMyEvents();
+
+      const today = new Date().toISOString().split('T')[0];
+      let filtered = data;
+
+      if (tab === 'upcoming') {
+        filtered = data.filter((e: any) => e.status === 'active' && e.eventDate >= today);
+      } else if (tab === 'past') {
+        filtered = data.filter((e: any) => e.status === 'active' && e.eventDate < today);
+      } else if (tab === 'drafts') {
+        filtered = data.filter((e: any) => e.status === 'draft');
+      }
+
+      setEvents(filtered as any);
+
+      const statsMap: Record<string, InvitationStats> = {};
+      for (const event of filtered) {
+        try {
+          const invitations = await api.getEventInvitations(event.id);
+          statsMap[event.id] = {
+            total: invitations.length,
+            going: invitations.filter((i: any) => i.status === 'going').length,
+            pending: invitations.filter((i: any) => i.status === 'pending').length,
+            declined: invitations.filter((i: any) => i.status === 'declined').length,
+          };
+        } catch (error) {
+          statsMap[event.id] = { total: 0, going: 0, pending: 0, declined: 0 };
+        }
+      }
+      setInvitationStats(statsMap);
+    } catch (error) {
+      console.error('Failed to fetch events:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 500);
+    await fetchEvents();
+    setRefreshing(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -132,8 +102,8 @@ export default function EventsScreen() {
     });
   };
 
-  const renderEvent = ({ item }: { item: Event }) => {
-    const coverPhoto = item.photo_urls?.[0] || null;
+  const renderEvent = ({ item }: { item: any }) => {
+    const coverPhoto = item.photoUrls?.[0] || null;
     const stats = invitationStats[item.id] || { total: 0, going: 0, pending: 0, declined: 0 };
 
     return (
@@ -147,14 +117,14 @@ export default function EventsScreen() {
 
         <View style={styles.eventContent}>
           <View style={styles.eventHeader}>
-            {item.event_categories && (
+            {item.category && (
               <View style={styles.categoryBadge}>
                 <Text style={styles.categoryBadgeText}>
-                  {item.event_categories.name}
+                  {item.category.name}
                 </Text>
               </View>
             )}
-            {!item.is_public && (
+            {!item.isPublic && (
               <View style={styles.privateBadge}>
                 <Text style={styles.privateBadgeText}>Invite Only</Text>
               </View>
@@ -178,22 +148,22 @@ export default function EventsScreen() {
             <View style={styles.detailRow}>
               <Calendar size={16} color="#666" />
               <Text style={styles.detailText}>
-                {formatDate(item.event_date)}
+                {formatDate(item.eventDate)}
               </Text>
             </View>
 
             <View style={styles.detailRow}>
               <Clock size={16} color="#666" />
               <Text style={styles.detailText}>
-                {item.start_time}
-                {item.end_time && ` - ${item.end_time}`}
+                {item.startTime}
+                {item.endTime && ` - ${item.endTime}`}
               </Text>
             </View>
 
             <View style={styles.detailRow}>
               <MapPin size={16} color="#666" />
               <Text style={styles.detailText} numberOfLines={1}>
-                {item.location_name}
+                {item.locationName}
               </Text>
             </View>
           </View>
