@@ -174,38 +174,29 @@ export default function CreateScreen() {
       const eventDateStr = eventDate.toISOString().split('T')[0];
       const endTimeValue = endTime || new Date(startTime.getTime() + 2 * 60 * 60 * 1000);
 
-      const { data, error: insertError } = await supabase
-        .from('events')
-        .insert({
-          creator_id: user?.id,
-          host_id: user?.id,
-          name,
-          description,
-          event_date: eventDateStr,
-          start_time: startTime.toISOString(),
-          end_time: endTimeValue.toISOString(),
-          location_old: locationName,
-          location_name: locationName,
-          event_type: selectedCategory?.name.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'social',
-          interest_tags: selectedInterests,
-          capacity_limit: capacityLimit ? parseInt(capacityLimit) : null,
-          is_public: isPublic,
-          status: 'active',
-          photo_urls: photoUrls.length > 0 ? photoUrls : [],
-        })
-        .select()
-        .single();
+      const eventData = {
+        name,
+        description,
+        eventDate: eventDateStr,
+        startTime: startTime.toISOString(),
+        endTime: endTimeValue.toISOString(),
+        locationName,
+        eventType: selectedCategory?.name.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'social',
+        interestTags: selectedInterests,
+        capacityLimit: capacityLimit ? parseInt(capacityLimit) : null,
+        isPublic,
+        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+      };
 
-      if (insertError) throw insertError;
-      if (!data) throw new Error('Failed to create event');
+      const createdEvent = await api.createEvent(eventData);
 
       resetForm();
       Alert.alert('Event Created!', 'Now invite people to your event', [
-        { text: 'OK', onPress: () => router.push({ pathname: '/event/simple-invite', params: { eventId: data.id } }) }
+        { text: 'OK', onPress: () => router.push({ pathname: '/event/simple-invite', params: { eventId: createdEvent.id } }) }
       ]);
     } catch (err: any) {
       console.error('Error creating event:', err);
-      Alert.alert('Error', err.message || 'Failed to create event');
+      Alert.alert('Error', err.response?.data?.message || err.message || 'Failed to create event');
     } finally {
       setLoading(false);
     }
