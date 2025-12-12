@@ -9,23 +9,23 @@ import { Fonts } from '@/constants/theme';
 interface Invitation {
   id: string;
   status: string;
-  personal_message: string | null;
-  responded_at: string | null;
-  created_at: string;
-  events: {
+  personalMessage: string | null;
+  respondedAt: string | null;
+  createdAt: string;
+  event: {
     id: string;
     name: string;
     description: string;
-    event_date: string;
-    start_time: string;
-    location_name: string;
-    photo_urls: any;
-    host_id: string;
+    eventDate: string;
+    startTime: string;
+    locationName: string;
+    photoUrls: string[];
+    hostId: string;
   };
-  profiles: {
+  inviter: {
     id: string;
-    full_name: string;
-    photo_urls: any;
+    fullName: string;
+    photoUrls: string[];
   };
 }
 
@@ -51,141 +51,30 @@ export default function NotificationsScreen() {
   }, [tab, invitations]);
 
   const fetchInvitations = async () => {
-    // MOCK DATA - Replace database fetch with hardcoded invitations
-    const mockInvitations: Invitation[] = [
-      {
-        id: 'inv-1',
-        status: 'pending',
-        personal_message: 'Hey! Would love to have you at my study session. Bring your notes!',
-        responded_at: null,
-        created_at: new Date().toISOString(),
-        events: {
-          id: 'event-1',
-          name: 'CS Study Group',
-          description: 'Final exam prep session',
-          event_date: '2025-11-25',
-          start_time: new Date('2025-11-25T18:00:00').toISOString(),
-          location_name: 'Main Library, Room 204',
-          photo_urls: ['https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg'],
-          host_id: 'user-1',
-        },
-        profiles: {
-          id: 'user-1',
-          full_name: 'Sarah Johnson',
-          photo_urls: ['https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg'],
-        },
-      },
-      {
-        id: 'inv-2',
-        status: 'pending',
-        personal_message: 'Pizza party at my place! No studying allowed 🍕',
-        responded_at: null,
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-        events: {
-          id: 'event-2',
-          name: 'Weekend Pizza Party',
-          description: 'Chill hangout with great food and music',
-          event_date: '2025-11-26',
-          start_time: new Date('2025-11-26T19:00:00').toISOString(),
-          location_name: '123 College Ave, Apt 4B',
-          photo_urls: ['https://images.pexels.com/photos/1653877/pexels-photo-1653877.jpeg'],
-          host_id: 'user-2',
-        },
-        profiles: {
-          id: 'user-2',
-          full_name: 'Michael Chen',
-          photo_urls: ['https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg'],
-        },
-      },
-      {
-        id: 'inv-3',
-        status: 'going',
-        personal_message: null,
-        responded_at: new Date(Date.now() - 172800000).toISOString(),
-        created_at: new Date(Date.now() - 259200000).toISOString(),
-        events: {
-          id: 'event-3',
-          name: 'Campus Coffee Meetup',
-          description: 'Casual networking over coffee',
-          event_date: '2025-11-24',
-          start_time: new Date('2025-11-24T10:00:00').toISOString(),
-          location_name: 'Starbucks on Main St',
-          photo_urls: ['https://images.pexels.com/photos/2074130/pexels-photo-2074130.jpeg'],
-          host_id: 'user-3',
-        },
-        profiles: {
-          id: 'user-3',
-          full_name: 'Emily Davis',
-          photo_urls: ['https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg'],
-        },
-      },
-      {
-        id: 'inv-4',
-        status: 'declined',
-        personal_message: 'Join us for game night!',
-        responded_at: new Date(Date.now() - 432000000).toISOString(),
-        created_at: new Date(Date.now() - 518400000).toISOString(),
-        events: {
-          id: 'event-4',
-          name: 'Board Game Night',
-          description: 'Settlers of Catan tournament',
-          event_date: '2025-11-20',
-          start_time: new Date('2025-11-20T20:00:00').toISOString(),
-          location_name: 'Student Center Game Room',
-          photo_urls: ['https://images.pexels.com/photos/776654/pexels-photo-776654.jpeg'],
-          host_id: 'user-4',
-        },
-        profiles: {
-          id: 'user-4',
-          full_name: 'James Wilson',
-          photo_urls: ['https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg'],
-        },
-      },
-    ];
-
-    setInvitations(mockInvitations);
-    setLoading(false);
-    setRefreshing(false);
-
-    /* OLD DATABASE CODE - COMMENTED OUT
-    const { data, error } = await supabase
-      .from('event_invitations')
-      .select(`
-        *,
-        events:event_id (
-          id,
-          name,
-          description,
-          event_date,
-          start_time,
-          location_name,
-          photo_urls,
-          host_id
-        ),
-        profiles:inviter_id (
-          id,
-          full_name,
-          photo_urls
-        )
-      `)
-      .eq('invitee_id', user?.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching invitations:', error);
-    } else {
-      const formattedData = data?.map((inv: any) => ({
-        ...inv,
-        profiles: inv.profiles || { id: inv.inviter_id, full_name: 'Unknown', photo_urls: null },
-      })) || [];
-      setInvitations(formattedData);
+    if (!user?.id) {
+      setLoading(false);
+      return;
     }
 
-    */
+    try {
+      const data = await api.getInvitations(user.id);
+      setInvitations(data);
+    } catch (error) {
+      console.error('Error fetching invitations:', error);
+      Alert.alert('Error', 'Failed to load invitations');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   const filterInvitations = () => {
-    const filtered = invitations.filter((inv) => inv.status === tab);
+    const statusMap: Record<typeof tab, string> = {
+      pending: 'pending',
+      going: 'accepted',
+      declined: 'rejected',
+    };
+    const filtered = invitations.filter((inv) => inv.status === statusMap[tab]);
     setFilteredInvitations(filtered);
   };
 
@@ -195,19 +84,13 @@ export default function NotificationsScreen() {
   };
 
   const handleAccept = async (invitationId: string) => {
-    const { error } = await supabase
-      .from('event_invitations')
-      .update({
-        status: 'going',
-        responded_at: new Date().toISOString(),
-      })
-      .eq('id', invitationId);
-
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
+    try {
+      await api.respondToInvitation(invitationId, 'accepted');
       Alert.alert('Success', "You're going! 🎉");
       fetchInvitations();
+    } catch (error: any) {
+      console.error('Error accepting invitation:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to accept invitation');
     }
   };
 
@@ -219,22 +102,16 @@ export default function NotificationsScreen() {
   const handleDeclineConfirm = async () => {
     if (!selectedInvitation) return;
 
-    const { error } = await supabase
-      .from('event_invitations')
-      .update({
-        status: 'declined',
-        responded_at: new Date().toISOString(),
-      })
-      .eq('id', selectedInvitation);
-
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
+    try {
+      await api.respondToInvitation(selectedInvitation, 'rejected');
       Alert.alert('Declined', 'You declined the invitation.');
       setShowDeclineModal(false);
       setSelectedInvitation(null);
       setDeclineReason(null);
       fetchInvitations();
+    } catch (error: any) {
+      console.error('Error declining invitation:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to decline invitation');
     }
   };
 
@@ -248,19 +125,13 @@ export default function NotificationsScreen() {
           text: 'Confirm',
           style: 'destructive',
           onPress: async () => {
-            const { error } = await supabase
-              .from('event_invitations')
-              .update({
-                status: 'declined',
-                responded_at: new Date().toISOString(),
-              })
-              .eq('id', invitationId);
-
-            if (error) {
-              Alert.alert('Error', error.message);
-            } else {
+            try {
+              await api.respondToInvitation(invitationId, 'rejected');
               Alert.alert('Updated', 'Your RSVP has been changed.');
               fetchInvitations();
+            } catch (error: any) {
+              console.error('Error changing RSVP:', error);
+              Alert.alert('Error', error.response?.data?.message || 'Failed to change RSVP');
             }
           },
         },
@@ -269,13 +140,13 @@ export default function NotificationsScreen() {
   };
 
   const renderInvitation = ({ item }: { item: Invitation }) => {
-    const coverPhoto = item.events.photo_urls?.[0] || null;
-    const hostPhoto = item.profiles.photo_urls?.[0] || null;
+    const coverPhoto = item.event.photoUrls?.[0] || null;
+    const hostPhoto = item.inviter.photoUrls?.[0] || null;
 
     return (
       <TouchableOpacity
         style={styles.invitationCard}
-        onPress={() => router.push(`/invitation/${item.id}`)}
+        onPress={() => router.push(`/event/${item.event.id}`)}
         activeOpacity={0.7}
       >
         {coverPhoto && (
@@ -292,33 +163,33 @@ export default function NotificationsScreen() {
               </View>
             )}
             <Text style={styles.hostText}>
-              {item.profiles.full_name} invited you
+              {item.inviter.fullName} invited you
             </Text>
           </View>
 
-          <Text style={styles.eventName}>{item.events.name}</Text>
+          <Text style={styles.eventName}>{item.event.name}</Text>
 
           <View style={styles.eventDetails}>
             <View style={styles.detailRow}>
               <Calendar size={14} color="#666" />
-              <Text style={styles.detailText}>{item.events.event_date}</Text>
+              <Text style={styles.detailText}>{item.event.eventDate}</Text>
             </View>
             <View style={styles.detailRow}>
               <Clock size={14} color="#666" />
-              <Text style={styles.detailText}>{item.events.start_time}</Text>
+              <Text style={styles.detailText}>{item.event.startTime}</Text>
             </View>
             <View style={styles.detailRow}>
               <MapPin size={14} color="#666" />
               <Text style={styles.detailText} numberOfLines={1}>
-                {item.events.location_name}
+                {item.event.locationName}
               </Text>
             </View>
           </View>
 
-          {item.personal_message && (
+          {item.personalMessage && (
             <View style={styles.messageBox}>
               <Text style={styles.messageText} numberOfLines={2}>
-                "{item.personal_message}"
+                "{item.personalMessage}"
               </Text>
             </View>
           )}
@@ -343,7 +214,7 @@ export default function NotificationsScreen() {
             </View>
           )}
 
-          {item.status === 'going' && (
+          {item.status === 'accepted' && (
             <TouchableOpacity
               style={styles.changeRSVPButton}
               onPress={() => handleChangeRSVP(item.id)}
@@ -357,8 +228,8 @@ export default function NotificationsScreen() {
   };
 
   const pendingCount = invitations.filter((i) => i.status === 'pending').length;
-  const goingCount = invitations.filter((i) => i.status === 'going').length;
-  const declinedCount = invitations.filter((i) => i.status === 'declined').length;
+  const goingCount = invitations.filter((i) => i.status === 'accepted').length;
+  const declinedCount = invitations.filter((i) => i.status === 'rejected').length;
 
   return (
     <View style={styles.container}>

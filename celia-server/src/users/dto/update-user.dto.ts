@@ -51,11 +51,10 @@ export class UpdateUserDto {
   @ApiPropertyOptional({
     example:
       'Hey there! I love hiking and meeting new people. Always down for a coffee chat!',
-    description: 'User bio (50-500 characters)',
+    description: 'User bio (optional, up to 500 characters)',
   })
   @IsOptional()
   @IsString()
-  @MinLength(50)
   @MaxLength(500)
   bio?: string;
 

@@ -154,6 +154,20 @@ class ApiClient {
     return response.data;
   }
 
+  async getMyEvents(creatorId: string, status?: string) {
+    const params: any = { creatorId };
+    if (status) params.status = status;
+    const response = await this.client.get('/events', { params });
+    return response.data;
+  }
+
+  async getUserHostedEvents(hostId: string, limit?: number) {
+    const params: any = { hostId };
+    if (limit) params.limit = limit;
+    const response = await this.client.get('/events', { params });
+    return response.data;
+  }
+
   async getEvent(eventId: string) {
     const response = await this.client.get(`/events/${eventId}`);
     return response.data;
@@ -212,6 +226,16 @@ class ApiClient {
 
   async getInvitations(userId: string) {
     const response = await this.client.get(`/invitations/user/${userId}`);
+    return response.data;
+  }
+
+  async getEventInvitations(eventId: string) {
+    const response = await this.client.get('/invitations', { params: { eventId } });
+    return response.data;
+  }
+
+  async deleteInvitation(invitationId: string) {
+    const response = await this.client.delete(`/invitations/${invitationId}`);
     return response.data;
   }
 

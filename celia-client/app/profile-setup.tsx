@@ -163,10 +163,32 @@ export default function ProfileSetupScreen() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (!validateStep()) return;
-    completeProfile();
-    router.replace('/(tabs)');
+    setLoading(true);
+    setError(null);
+
+    try {
+      const profileData = {
+        fullName,
+        bio: bio.trim() || undefined,
+        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+        interests: selectedInterests,
+        collegeName: selectedCollege?.name,
+        collegeId: selectedCollege?.id,
+        preferredLocations,
+        profileCompleted: true,
+      };
+
+      await api.updateUser(user!.id, profileData);
+      completeProfile();
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      console.error('Error completing profile:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to save profile');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredColleges = colleges.filter((college) =>
