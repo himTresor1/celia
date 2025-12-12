@@ -37,19 +37,10 @@ export class AuthService {
           email: dto.email,
           password: hashedPassword,
           fullName: dto.fullName,
-          collegeName: dto.collegeName,
-          major: dto.major,
-          graduationYear: dto.graduationYear,
-          bio: dto.bio || '',
-          interests: dto.interests || [],
-          preferredLocations: dto.preferredLocations || [],
-          profileCompleted: !!(
-            dto.collegeName &&
-            dto.major &&
-            dto.graduationYear &&
-            dto.bio &&
-            dto.interests?.length >= 3
-          ),
+          bio: '',
+          interests: [],
+          preferredLocations: [],
+          profileCompleted: false, // Will be completed via profile-setup screen
         },
         select: {
           id: true,
