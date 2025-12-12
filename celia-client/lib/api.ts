@@ -2,13 +2,18 @@ import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE = `${API_URL}/api`; // Backend uses /api prefix
+
+console.log('[API] Initializing API Client');
+console.log('[API] API_URL:', API_URL);
+console.log('[API] API_BASE:', API_BASE);
 
 class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_URL,
+      baseURL: API_BASE, // Use API_BASE which includes /api prefix
       headers: {
         'Content-Type': 'application/json',
       },
@@ -19,16 +24,43 @@ class ApiClient {
         const token = await AsyncStorage.getItem('authToken');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('[API] Request with token:', {
+            url: config.url,
+            method: config.method,
+            hasToken: true
+          });
+        } else {
+          console.log('[API] Request without token:', {
+            url: config.url,
+            method: config.method
+          });
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => {
+        console.error('[API] Request interceptor error:', error);
+        return Promise.reject(error);
+      }
     );
 
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        console.log('[API] Response success:', {
+          url: response.config.url,
+          status: response.status
+        });
+        return response;
+      },
       async (error) => {
+        console.error('[API] Response error:', {
+          url: error.config?.url,
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+        });
+
         if (error.response?.status === 401) {
+          console.log('[API] Unauthorized - clearing tokens');
           await AsyncStorage.removeItem('authToken');
           await AsyncStorage.removeItem('user');
         }
@@ -47,16 +79,55 @@ class ApiClient {
   }
 
   async register(data: { email: string; password: string; fullName: string }) {
-    const response = await this.client.post('/auth/register', data);
-    return response.data;
+    try {
+      console.log('[API] Register request:', {
+        email: data.email,
+        fullName: data.fullName,
+        url: `${API_URL}/auth/register`
+      });
+      const response = await this.client.post('/auth/register', data);
+      console.log('[API] Register response:', response.data);
+
+      // Backend returns 'token', not 'access_token'
+      if (response.data.token) {
+        await this.setToken(response.data.token);
+        console.log('[API] Token saved successfully');
+      } else {
+        console.error('[API] No token in response:', response.data);
+      }
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Register error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      throw error;
+    }
   }
 
   async login(email: string, password: string) {
-    const response = await this.client.post('/auth/login', { email, password });
-    if (response.data.access_token) {
-      await this.setToken(response.data.access_token);
+    try {
+      console.log('[API] Login request:', { email, url: `${API_URL}/auth/login` });
+      const response = await this.client.post('/auth/login', { email, password });
+      console.log('[API] Login response:', response.data);
+
+      // Backend returns 'token', not 'access_token'
+      if (response.data.token) {
+        await this.setToken(response.data.token);
+        console.log('[API] Token saved successfully');
+      } else {
+        console.error('[API] No token in response:', response.data);
+      }
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Login error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      throw error;
     }
-    return response.data;
   }
 
   async logout() {

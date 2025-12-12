@@ -99,8 +99,15 @@ async function bootstrap() {
   ║   📖 Swagger:     http://localhost:${port}/api/docs     ║
   ║   🔧 Environment: ${configService.get('NODE_ENV', 'development').padEnd(11)}              ║
   ║                                                       ║
+  ║   ⚠️  API PREFIX: /api (all endpoints start with /api) ║
+  ║   ✅ Database:   ${configService.get('DATABASE_URL') ? 'Connected' : 'NOT CONFIGURED'.padEnd(9)}              ║
+  ║   ✅ JWT Secret: ${configService.get('JWT_SECRET') ? 'Configured' : 'NOT CONFIGURED'}            ║
+  ║                                                       ║
   ╚═══════════════════════════════════════════════════════╝
   `);
+
+  console.log('\n📝 Logging enabled for authentication and requests');
+  console.log('💡 Frontend should connect to: http://localhost:${port}\n');
 }
 
 bootstrap();
