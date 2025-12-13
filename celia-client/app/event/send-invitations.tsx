@@ -77,9 +77,41 @@ export default function SendInvitationsScreen() {
   const [loading] = useState(false);
   const [sendingInvitations, setSendingInvitations] = useState(false);
 
-  const handleSendInvitations = () => {
+  const handleSendInvitations = async () => {
     if (!event || guests.length === 0) return;
-    router.replace('/(tabs)/events');
+
+    setSendingInvitations(true);
+
+    try {
+      const guestIds = guests.map(g => g.id);
+
+      const { data, error } = await apiHelpers.bulkInviteToEvent(
+        eventId,
+        guestIds,
+        personalMessage || undefined
+      );
+
+      if (error) {
+        Alert.alert('Error', error);
+        return;
+      }
+
+      Alert.alert(
+        'Success!',
+        `${data.invitations.length} invitation${data.invitations.length !== 1 ? 's' : ''} sent successfully!`,
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(tabs)/events'),
+          },
+        ]
+      );
+
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send invitations');
+    } finally {
+      setSendingInvitations(false);
+    }
   };
 
   const handleRemoveGuest = (guestId: string) => {
