@@ -103,6 +103,61 @@ export class EventsService {
     });
   }
 
+  async getMyEvents(userId: string, status?: string) {
+    const where: any = {
+      hostId: userId,
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    const events = await this.prisma.event.findMany({
+      where,
+      include: {
+        host: {
+          select: {
+            id: true,
+            fullName: true,
+            avatarUrl: true,
+            collegeName: true,
+          },
+        },
+        category: true,
+        invitations: {
+          select: {
+            id: true,
+            status: true,
+            invitee: {
+              select: {
+                id: true,
+                fullName: true,
+                photoUrls: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ eventDate: 'asc' }, { startTime: 'asc' }],
+    });
+
+    return events.map((event) => {
+      const going = event.invitations.filter((inv) => inv.status === 'accepted').length;
+      const pending = event.invitations.filter((inv) => inv.status === 'pending').length;
+      const declined = event.invitations.filter((inv) => inv.status === 'rejected').length;
+
+      return {
+        ...event,
+        stats: {
+          going,
+          pending,
+          declined,
+          total: event.invitations.length,
+        },
+      };
+    });
+  }
+
   async findOne(id: string, userId: string) {
     const event = await this.prisma.event.findUnique({
       where: { id },

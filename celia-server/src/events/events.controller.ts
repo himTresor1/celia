@@ -43,6 +43,24 @@ export class EventsController {
     return this.eventsService.create(user.id, dto);
   }
 
+  @Get('my')
+  @ApiOperation({ summary: 'Get my events (events I created)' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter by status (draft, active, cancelled, completed)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of my events',
+  })
+  getMyEvents(
+    @CurrentUser() user: any,
+    @Query('status') status?: string,
+  ) {
+    return this.eventsService.getMyEvents(user.id, status);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all accessible events' })
   @ApiQuery({

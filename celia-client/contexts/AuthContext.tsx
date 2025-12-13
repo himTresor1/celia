@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         interests: userData.interests || null,
         college_verified: userData.collegeVerified || false,
         preferred_locations: userData.preferredLocations || null,
-        is_profile_completed: userData.isProfileCompleted || false,
+        is_profile_completed: userData.profileCompleted || false,
       };
       setProfile(profileData);
       setUser(userData);
@@ -89,10 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const completeProfile = () => {
+  const completeProfile = async () => {
     if (profile) {
       setProfile({ ...profile, is_profile_completed: true });
     }
+    await refreshProfile();
   };
 
   useEffect(() => {

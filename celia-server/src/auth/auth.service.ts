@@ -55,7 +55,7 @@ export class AuthService {
           interests: true,
           preferredLocations: true,
           collegeVerified: true,
-          profileCompleted: true,
+          profileCompleted: false,
           createdAt: true,
           updatedAt: true,
         },

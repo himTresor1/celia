@@ -154,10 +154,10 @@ class ApiClient {
     return response.data;
   }
 
-  async getMyEvents(creatorId: string, status?: string) {
-    const params: any = { creatorId };
+  async getMyEvents(status?: string) {
+    const params: any = {};
     if (status) params.status = status;
-    const response = await this.client.get('/events', { params });
+    const response = await this.client.get('/events/my', { params });
     return response.data;
   }
 
@@ -189,7 +189,7 @@ class ApiClient {
   }
 
   async getFriends(userId: string) {
-    const response = await this.client.get(`/friends/${userId}`);
+    const response = await this.client.get('/friends');
     return response.data;
   }
 
@@ -255,7 +255,7 @@ class ApiClient {
   }
 
   async getSavedUsers(userId: string) {
-    const response = await this.client.get(`/lists/saved/${userId}`);
+    const response = await this.client.get('/lists/saved');
     return response.data;
   }
 
@@ -270,12 +270,12 @@ class ApiClient {
   }
 
   async removeFromSaved(userId: string, savedUserId: string) {
-    const response = await this.client.delete(`/lists/saved/${userId}/${savedUserId}`);
+    const response = await this.client.delete(`/lists/saved/${savedUserId}`);
     return response.data;
   }
 
   async getInvitees(userId: string) {
-    const response = await this.client.get(`/lists/invitees/${userId}`);
+    const response = await this.client.get('/lists/invitees');
     return response.data;
   }
 

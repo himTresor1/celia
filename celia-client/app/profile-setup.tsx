@@ -181,7 +181,7 @@ export default function ProfileSetupScreen() {
       };
 
       await api.updateUser(user!.id, profileData);
-      completeProfile();
+      await completeProfile();
       router.replace('/(tabs)');
     } catch (err: any) {
       console.error('Error completing profile:', err);
