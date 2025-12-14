@@ -108,7 +108,13 @@ class ApiClient {
 
   async login(email: string, password: string) {
     try {
-      console.log('[API] Login request:', { email, url: `${API_URL}/auth/login` });
+      console.log('[API] Login request:', { 
+        email, 
+        url: `${API_BASE}/auth/login`,
+        baseURL: API_BASE,
+        fullURL: `${API_URL}/api/auth/login`
+      });
+      
       const response = await this.client.post('/auth/login', { email, password });
       console.log('[API] Login response:', response.data);
 
@@ -118,14 +124,35 @@ class ApiClient {
         console.log('[API] Token saved successfully');
       } else {
         console.error('[API] No token in response:', response.data);
+        throw new Error('No token received from server');
       }
       return response.data;
     } catch (error: any) {
-      console.error('[API] Login error:', {
+      // Enhanced error logging
+      const errorDetails = {
         message: error.message,
+        code: error.code,
         response: error.response?.data,
         status: error.response?.status,
-      });
+        statusText: error.response?.statusText,
+        requestURL: error.config?.url,
+        requestBaseURL: error.config?.baseURL,
+      };
+      console.error('[API] Login error details:', errorDetails);
+      
+      // Provide more helpful error messages
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+        throw new Error('Cannot connect to server. Make sure the backend is running on http://localhost:3000');
+      }
+      
+      if (error.response?.status === 401) {
+        throw new Error(error.response?.data?.message || 'Invalid email or password');
+      }
+      
+      if (error.response?.status === 500) {
+        throw new Error('Server error. Please try again later.');
+      }
+      
       throw error;
     }
   }
@@ -225,12 +252,13 @@ class ApiClient {
   }
 
   async getInvitations(userId: string) {
-    const response = await this.client.get(`/invitations/user/${userId}`);
+    // Use /invitations/my endpoint which gets invitations for the current authenticated user
+    const response = await this.client.get('/invitations/my');
     return response.data;
   }
 
   async getEventInvitations(eventId: string) {
-    const response = await this.client.get('/invitations', { params: { eventId } });
+    const response = await this.client.get(`/invitations/event/${eventId}`);
     return response.data;
   }
 
@@ -250,7 +278,9 @@ class ApiClient {
   }
 
   async respondToInvitation(invitationId: string, response: 'accepted' | 'rejected') {
-    const res = await this.client.patch(`/invitations/${invitationId}`, { response });
+    // Backend expects 'status' field, and uses 'going' for accepted, 'rejected' for declined
+    const status = response === 'accepted' ? 'going' : 'rejected';
+    const res = await this.client.patch(`/invitations/${invitationId}`, { status });
     return res.data;
   }
 
@@ -306,6 +336,11 @@ class ApiClient {
 
   async getCategories() {
     const response = await this.client.get('/categories');
+    return response.data;
+  }
+
+  async getEventCategories() {
+    const response = await this.client.get('/categories/events');
     return response.data;
   }
 }

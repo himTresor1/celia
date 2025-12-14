@@ -1,16 +1,38 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Image, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+  Alert,
+  Modal,
+} from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, X, MapPin, Calendar, Clock, Users, Heart, Save } from 'lucide-react-native';
+import {
+  Camera,
+  X,
+  MapPin,
+  Calendar,
+  Clock,
+  Users,
+  Heart,
+  Save,
+} from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import WebDatePicker from '@/components/WebDatePicker';
 
 interface EventCategory {
   id: string;
   name: string;
-  icon: string;
+  icon?: string | null;
 }
 
 interface Interest {
@@ -29,28 +51,26 @@ export default function CreateScreen() {
   const [eventDate, setEventDate] = useState<Date>(new Date());
   const [startTime, setStartTime] = useState<Date>(new Date());
   const [endTime, setEndTime] = useState<Date | null>(null);
+
+  // Helper to get default end time for web picker
+  const getDefaultEndTime = () => {
+    if (endTime) return endTime;
+    const defaultEnd = new Date(startTime);
+    defaultEnd.setHours(startTime.getHours() + 2, startTime.getMinutes(), 0, 0);
+    return defaultEnd;
+  };
   const [locationName, setLocationName] = useState('');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<EventCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] =
+    useState<EventCategory | null>(null);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [capacityLimit, setCapacityLimit] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
-
-  const categories: EventCategory[] = [
-    { id: '1', name: 'Study Session', icon: '📚' },
-    { id: '2', name: 'Social Hangout', icon: '🎉' },
-    { id: '3', name: 'Sports & Fitness', icon: '⚽' },
-    { id: '4', name: 'Food & Dining', icon: '🍕' },
-    { id: '5', name: 'Arts & Culture', icon: '🎨' },
-    { id: '6', name: 'Party', icon: '🎊' },
-    { id: '7', name: 'Outdoor Adventure', icon: '🏕️' },
-    { id: '8', name: 'Workshop', icon: '🔧' },
-    { id: '9', name: 'Movie Night', icon: '🎬' },
-    { id: '10', name: 'Game Night', icon: '🎮' },
-  ];
+  const [categories, setCategories] = useState<EventCategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
 
   const interests: Interest[] = [
     { id: '1', name: 'Sports & Fitness' },
@@ -81,10 +101,14 @@ export default function CreateScreen() {
       return;
     }
 
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+      Alert.alert(
+        'Permission Required',
+        'Permission to access camera roll is required!'
+      );
       return;
     }
 
@@ -103,6 +127,34 @@ export default function CreateScreen() {
   const handleRemovePhoto = (index: number) => {
     setPhotoUrls(photoUrls.filter((_, i) => i !== index));
   };
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const data = await api.getEventCategories();
+        setCategories(data || []);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        // Fallback to default categories if API fails
+        setCategories([
+          { id: '1', name: 'Study Session', icon: '📚' },
+          { id: '2', name: 'Social Hangout', icon: '🎉' },
+          { id: '3', name: 'Sports & Fitness', icon: '⚽' },
+          { id: '4', name: 'Food & Dining', icon: '🍕' },
+          { id: '5', name: 'Arts & Culture', icon: '🎨' },
+          { id: '6', name: 'Party', icon: '🎊' },
+          { id: '7', name: 'Outdoor Adventure', icon: '🏕️' },
+          { id: '8', name: 'Workshop', icon: '🔧' },
+          { id: '9', name: 'Movie Night', icon: '🎬' },
+          { id: '10', name: 'Game Night', icon: '🎮' },
+        ]);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    loadCategories();
+  }, []);
 
   const toggleInterest = (interestName: string) => {
     if (selectedInterests.includes(interestName)) {
@@ -172,7 +224,8 @@ export default function CreateScreen() {
 
     try {
       const eventDateStr = eventDate.toISOString().split('T')[0];
-      const endTimeValue = endTime || new Date(startTime.getTime() + 2 * 60 * 60 * 1000);
+      const endTimeValue =
+        endTime || new Date(startTime.getTime() + 2 * 60 * 60 * 1000);
 
       const eventData = {
         name,
@@ -181,7 +234,7 @@ export default function CreateScreen() {
         startTime: startTime.toISOString(),
         endTime: endTimeValue.toISOString(),
         locationName,
-        eventType: selectedCategory?.name.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'social',
+        categoryId: selectedCategory?.id || undefined,
         interestTags: selectedInterests,
         capacityLimit: capacityLimit ? parseInt(capacityLimit) : null,
         isPublic,
@@ -192,22 +245,39 @@ export default function CreateScreen() {
 
       resetForm();
       Alert.alert('Event Created!', 'Now invite people to your event', [
-        { text: 'OK', onPress: () => router.push({ pathname: '/event/simple-invite', params: { eventId: createdEvent.id } }) }
+        {
+          text: 'OK',
+          onPress: () =>
+            router.push({
+              pathname: '/event/simple-invite',
+              params: { eventId: createdEvent.id },
+            }),
+        },
       ]);
     } catch (err: any) {
       console.error('Error creating event:', err);
-      Alert.alert('Error', err.response?.data?.message || err.message || 'Failed to create event');
+      Alert.alert(
+        'Error',
+        err.response?.data?.message || err.message || 'Failed to create event'
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const resetForm = () => {
@@ -256,9 +326,7 @@ export default function CreateScreen() {
         {step === 1 && (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Event Details</Text>
-            <Text style={styles.stepSubtitle}>
-              Tell us about your event
-            </Text>
+            <Text style={styles.stepSubtitle}>Tell us about your event</Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Event Name * (3-50 characters)</Text>
@@ -273,7 +341,9 @@ export default function CreateScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Description * (50-500 characters)</Text>
+              <Text style={styles.label}>
+                Description * (50-500 characters)
+              </Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="Describe your event in detail..."
@@ -289,42 +359,73 @@ export default function CreateScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Event Date *</Text>
-              <TouchableOpacity
-                style={styles.iconInput}
-                onPress={() => setShowDatePicker(true)}
-              >
+              <View style={styles.iconInput}>
                 <Calendar size={20} color="#666" />
-                <Text style={styles.iconInputField}>
-                  {formatDate(eventDate)}
-                </Text>
-              </TouchableOpacity>
+                {Platform.OS === 'web' ? (
+                  <WebDatePicker
+                    value={eventDate}
+                    onChange={setEventDate}
+                    minimumDate={new Date()}
+                    mode="date"
+                  />
+                ) : (
+                  <TouchableOpacity
+                    style={{ flex: 1 }}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Text style={styles.iconInputField}>
+                      {formatDate(eventDate)}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, styles.halfWidth]}>
                 <Text style={styles.label}>Start Time *</Text>
-                <TouchableOpacity
-                  style={styles.iconInput}
-                  onPress={() => setShowStartTimePicker(true)}
-                >
+                <View style={styles.iconInput}>
                   <Clock size={20} color="#666" />
-                  <Text style={styles.iconInputField}>
-                    {formatTime(startTime)}
-                  </Text>
-                </TouchableOpacity>
+                  {Platform.OS === 'web' ? (
+                    <WebDatePicker
+                      value={startTime}
+                      onChange={setStartTime}
+                      mode="time"
+                    />
+                  ) : (
+                    <TouchableOpacity
+                      style={{ flex: 1 }}
+                      onPress={() => setShowStartTimePicker(true)}
+                    >
+                      <Text style={styles.iconInputField}>
+                        {formatTime(startTime)}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
 
               <View style={[styles.inputGroup, styles.halfWidth]}>
                 <Text style={styles.label}>End Time</Text>
-                <TouchableOpacity
-                  style={styles.iconInput}
-                  onPress={() => setShowEndTimePicker(true)}
-                >
+                <View style={styles.iconInput}>
                   <Clock size={20} color="#666" />
-                  <Text style={styles.iconInputField}>
-                    {endTime ? formatTime(endTime) : 'Optional'}
-                  </Text>
-                </TouchableOpacity>
+                  {Platform.OS === 'web' ? (
+                    <WebDatePicker
+                      value={getDefaultEndTime()}
+                      onChange={(date) => setEndTime(date)}
+                      mode="time"
+                    />
+                  ) : (
+                    <TouchableOpacity
+                      style={{ flex: 1 }}
+                      onPress={() => setShowEndTimePicker(true)}
+                    >
+                      <Text style={styles.iconInputField}>
+                        {endTime ? formatTime(endTime) : 'Optional'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
             </View>
 
@@ -349,9 +450,7 @@ export default function CreateScreen() {
         {step === 2 && (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Photos & Category</Text>
-            <Text style={styles.stepSubtitle}>
-              Make your event attractive
-            </Text>
+            <Text style={styles.stepSubtitle}>Make your event attractive</Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Event Photos * (1-10 photos)</Text>
@@ -454,9 +553,7 @@ export default function CreateScreen() {
         {step === 3 && (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Final Settings</Text>
-            <Text style={styles.stepSubtitle}>
-              Set capacity and visibility
-            </Text>
+            <Text style={styles.stepSubtitle}>Set capacity and visibility</Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Capacity Limit (Optional)</Text>
@@ -525,7 +622,9 @@ export default function CreateScreen() {
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Date:</Text>
-                <Text style={styles.summaryValue}>{formatDate(eventDate)} at {formatTime(startTime)}</Text>
+                <Text style={styles.summaryValue}>
+                  {formatDate(eventDate)} at {formatTime(startTime)}
+                </Text>
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Location:</Text>
@@ -533,7 +632,9 @@ export default function CreateScreen() {
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Category:</Text>
-                <Text style={styles.summaryValue}>{selectedCategory?.name}</Text>
+                <Text style={styles.summaryValue}>
+                  {selectedCategory?.name}
+                </Text>
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Photos:</Text>
@@ -573,7 +674,10 @@ export default function CreateScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.createButton, loading && styles.createButtonDisabled]}
+              style={[
+                styles.createButton,
+                loading && styles.createButtonDisabled,
+              ]}
               onPress={handleCreateEvent}
               disabled={loading}
             >
@@ -585,7 +689,7 @@ export default function CreateScreen() {
         )}
       </View>
 
-      {showDatePicker && (
+      {Platform.OS !== 'web' && showDatePicker && (
         <DateTimePicker
           value={eventDate}
           mode="date"
@@ -600,7 +704,7 @@ export default function CreateScreen() {
         />
       )}
 
-      {showStartTimePicker && (
+      {Platform.OS !== 'web' && showStartTimePicker && (
         <DateTimePicker
           value={startTime}
           mode="time"
@@ -614,7 +718,7 @@ export default function CreateScreen() {
         />
       )}
 
-      {showEndTimePicker && (
+      {Platform.OS !== 'web' && showEndTimePicker && (
         <DateTimePicker
           value={endTime || new Date()}
           mode="time"

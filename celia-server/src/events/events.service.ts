@@ -13,9 +13,20 @@ export class EventsService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, dto: CreateEventDto) {
+    // Convert eventDate from date string (YYYY-MM-DD) to DateTime
+    let eventDate: Date | undefined;
     if (dto.eventDate) {
-      const date = new Date(dto.eventDate);
-      if (date < new Date()) {
+      // If it's already a full ISO string, use it directly
+      // Otherwise, if it's just a date (YYYY-MM-DD), convert it to DateTime at midnight
+      const dateStr = dto.eventDate;
+      if (dateStr.includes('T')) {
+        eventDate = new Date(dateStr);
+      } else {
+        // Add time component to make it a full DateTime
+        eventDate = new Date(`${dateStr}T00:00:00.000Z`);
+      }
+      
+      if (eventDate < new Date()) {
         throw new BadRequestException('Event date cannot be in the past');
       }
     }
@@ -23,6 +34,7 @@ export class EventsService {
     return this.prisma.event.create({
       data: {
         ...dto,
+        eventDate: eventDate,
         photoUrls: dto.photoUrls || [],
         hostId: userId,
       },
@@ -239,9 +251,21 @@ export class EventsService {
       );
     }
 
+    // Convert eventDate from date string (YYYY-MM-DD) to DateTime if provided
+    const updateData: any = { ...dto };
+    if (dto.eventDate) {
+      const dateStr = dto.eventDate;
+      if (dateStr.includes('T')) {
+        updateData.eventDate = new Date(dateStr);
+      } else {
+        // Add time component to make it a full DateTime
+        updateData.eventDate = new Date(`${dateStr}T00:00:00.000Z`);
+      }
+    }
+
     return this.prisma.event.update({
       where: { id },
-      data: dto,
+      data: updateData,
       include: {
         host: {
           select: {

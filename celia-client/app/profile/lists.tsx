@@ -1,4 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Heart, Users, Mail, ChevronRight } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
@@ -20,7 +26,10 @@ export default function MyListsScreen() {
   }, []);
 
   const loadCounts = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const [savedResult, friendsResult, inviteesResult] = await Promise.all([
@@ -44,7 +53,9 @@ export default function MyListsScreen() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>My Lists</Text>
-      <Text style={styles.subtitle}>Manage your connections and saved users</Text>
+      <Text style={styles.subtitle}>
+        Manage your connections and saved users
+      </Text>
 
       <TouchableOpacity
         style={styles.listCard}
@@ -72,9 +83,7 @@ export default function MyListsScreen() {
         </View>
         <View style={styles.listInfo}>
           <Text style={styles.listName}>Friends</Text>
-          <Text style={styles.listDescription}>
-            Connected via Energy Pulse
-          </Text>
+          <Text style={styles.listDescription}>Connected via Energy Pulse</Text>
           <Text style={styles.listCount}>{counts.friends} friends</Text>
         </View>
         <ChevronRight size={24} color="#666" />

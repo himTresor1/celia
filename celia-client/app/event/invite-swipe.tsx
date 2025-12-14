@@ -20,6 +20,7 @@ import { DUMMY_USER_UUIDS, DUMMY_USERS } from '@/lib/dummyUsers';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 90;
@@ -40,6 +41,7 @@ export default function InviteSwipeScreen() {
     eventId?: string;
     savedUserIds?: string;
   }>();
+  const { user } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [invited, setInvited] = useState<string[]>([]);
@@ -108,13 +110,16 @@ export default function InviteSwipeScreen() {
   const handleInvite = async () => {
     if (isAnimating || currentIndex >= users.length) return;
 
-    const user = users[currentIndex];
-    setInvited((prev) => [...prev, user.id]);
+    const targetUser = users[currentIndex];
+    setInvited((prev) => [...prev, targetUser.id]);
     setIsAnimating(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      await api.addToSaved({ userId: user.id });
+      if (user?.id && targetUser.id) {
+        // userId: current logged-in user, savedUserId: user being saved/invited
+        await api.addToSaved(user.id, targetUser.id, 'event_invite');
+      }
     } catch (error) {
       console.error('Failed to save user to list:', error);
     }

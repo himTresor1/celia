@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Mail, Lock } from 'lucide-react-native';
@@ -28,12 +37,22 @@ export default function LoginScreen() {
 
     setLoading(true);
 
-    const { error: signInError } = await signIn(email, password);
+    try {
+      const { error: signInError } = await signIn(email, password);
 
-    setLoading(false);
-
-    if (signInError) {
-      setError(signInError.message);
+      if (signInError) {
+        console.error('[LoginScreen] Sign in error:', signInError);
+        setError(
+          signInError.message || 'Login failed. Please check your credentials.'
+        );
+      }
+    } catch (err: any) {
+      console.error('[LoginScreen] Unexpected error:', err);
+      setError(
+        err.message || 'An unexpected error occurred. Please try again.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,7 +110,10 @@ export default function LoginScreen() {
           </View>
 
           <TouchableOpacity
-            style={[SharedStyles.button, loading && SharedStyles.buttonDisabled]}
+            style={[
+              SharedStyles.button,
+              loading && SharedStyles.buttonDisabled,
+            ]}
             onPress={handleLogin}
             disabled={loading}
           >

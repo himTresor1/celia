@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  RefreshControl,
+  Image,
+} from 'react-native';
 import { Calendar, MapPin, Users, Clock, FileText } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
@@ -36,7 +44,9 @@ export default function EventsScreen() {
   const { user } = useAuth();
 
   const [events, setEvents] = useState<Event[]>([]);
-  const [invitationStats, setInvitationStats] = useState<Record<string, InvitationStats>>({});
+  const [invitationStats, setInvitationStats] = useState<
+    Record<string, InvitationStats>
+  >({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<'upcoming' | 'past' | 'drafts'>('upcoming');
@@ -56,9 +66,15 @@ export default function EventsScreen() {
       let filtered = data;
 
       if (tab === 'upcoming') {
-        filtered = data.filter((e: any) => e.status === 'active' && e.eventDate >= today);
+        filtered = data.filter((e: any) => {
+          const eventDate = e.eventDate || e.event_date;
+          return e.status === 'active' && eventDate >= today;
+        });
       } else if (tab === 'past') {
-        filtered = data.filter((e: any) => e.status === 'active' && e.eventDate < today);
+        filtered = data.filter((e: any) => {
+          const eventDate = e.eventDate || e.event_date;
+          return e.status === 'active' && eventDate < today;
+        });
       } else if (tab === 'drafts') {
         filtered = data.filter((e: any) => e.status === 'draft');
       }
@@ -72,8 +88,10 @@ export default function EventsScreen() {
           statsMap[event.id] = {
             total: invitations.length,
             going: invitations.filter((i: any) => i.status === 'going').length,
-            pending: invitations.filter((i: any) => i.status === 'pending').length,
-            declined: invitations.filter((i: any) => i.status === 'declined').length,
+            pending: invitations.filter((i: any) => i.status === 'pending')
+              .length,
+            declined: invitations.filter((i: any) => i.status === 'declined')
+              .length,
           };
         } catch (error) {
           statsMap[event.id] = { total: 0, going: 0, pending: 0, declined: 0 };
@@ -104,7 +122,12 @@ export default function EventsScreen() {
 
   const renderEvent = ({ item }: { item: any }) => {
     const coverPhoto = item.photoUrls?.[0] || null;
-    const stats = invitationStats[item.id] || { total: 0, going: 0, pending: 0, declined: 0 };
+    const stats = invitationStats[item.id] || {
+      total: 0,
+      going: 0,
+      pending: 0,
+      declined: 0,
+    };
 
     return (
       <TouchableOpacity
@@ -224,10 +247,7 @@ export default function EventsScreen() {
             onPress={() => setTab('drafts')}
           >
             <Text
-              style={[
-                styles.tabText,
-                tab === 'drafts' && styles.tabTextActive,
-              ]}
+              style={[styles.tabText, tab === 'drafts' && styles.tabTextActive]}
             >
               Drafts
             </Text>

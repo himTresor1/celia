@@ -56,42 +56,57 @@ export class InvitationsService {
       throw new ConflictException('User already invited to this event');
     }
 
-    return this.prisma.eventInvitation.create({
-      data: {
-        eventId: dto.eventId,
-        inviterId,
-        inviteeId: dto.inviteeId,
-        personalMessage: dto.personalMessage,
-      },
-      include: {
-        event: {
-          include: {
-            host: {
-              select: {
-                id: true,
-                fullName: true,
-                avatarUrl: true,
+    const invitation = await this.prisma.$transaction(async (tx) => {
+      // Create invitation
+      const created = await tx.eventInvitation.create({
+        data: {
+          eventId: dto.eventId,
+          inviterId,
+          inviteeId: dto.inviteeId,
+          personalMessage: dto.personalMessage,
+        },
+        include: {
+          event: {
+            include: {
+              host: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  avatarUrl: true,
+                },
               },
+              category: true,
             },
-            category: true,
+          },
+          inviter: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+            },
+          },
+          invitee: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+            },
           },
         },
-        inviter: {
-          select: {
-            id: true,
-            fullName: true,
-            avatarUrl: true,
-          },
-        },
-        invitee: {
-          select: {
-            id: true,
-            fullName: true,
-            avatarUrl: true,
-          },
-        },
-      },
+      });
+
+      // Update event status from draft to active if this is the first invitation
+      if (event.status === 'draft') {
+        await tx.event.update({
+          where: { id: dto.eventId },
+          data: { status: 'active' },
+        });
+      }
+
+      return created;
     });
+
+    return invitation;
   }
 
   async bulkCreate(inviterId: string, dto: BulkInviteDto) {
@@ -115,6 +130,32 @@ export class InvitationsService {
       throw new BadRequestException('No valid invitees provided');
     }
 
+    // Validate that all inviteeIds exist in the database
+    const existingUsers = await this.prisma.user.findMany({
+      where: {
+        id: {
+          in: validInviteeIds,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const existingUserIds = existingUsers.map((u) => u.id);
+    const invalidInviteeIds = validInviteeIds.filter(
+      (id) => !existingUserIds.includes(id),
+    );
+
+    if (invalidInviteeIds.length > 0) {
+      console.error('Invalid invitee IDs:', invalidInviteeIds);
+      console.error('Valid invitee IDs:', validInviteeIds);
+      console.error('Existing user IDs:', existingUserIds);
+      throw new BadRequestException(
+        `Cannot send invitations: ${invalidInviteeIds.length} user${invalidInviteeIds.length > 1 ? 's' : ''} do not exist in the database. Invalid IDs: ${invalidInviteeIds.slice(0, 5).join(', ')}${invalidInviteeIds.length > 5 ? '...' : ''}. Please refresh your saved list and try again.`,
+      );
+    }
+
     const existingInvitations = await this.prisma.eventInvitation.findMany({
       where: {
         eventId: dto.eventId,
@@ -136,27 +177,55 @@ export class InvitationsService {
       throw new ConflictException('All users are already invited');
     }
 
-    const invitations = await this.prisma.$transaction(
-      newInviteeIds.map((inviteeId) =>
-        this.prisma.eventInvitation.create({
-          data: {
-            eventId: dto.eventId,
-            inviterId,
-            inviteeId,
-            personalMessage: dto.personalMessage,
-          },
-          include: {
-            invitee: {
-              select: {
-                id: true,
-                fullName: true,
-                avatarUrl: true,
+    // Double-check that all newInviteeIds are in the validated list
+    const validatedNewInviteeIds = newInviteeIds.filter((id) =>
+      existingUserIds.includes(id),
+    );
+
+    if (validatedNewInviteeIds.length !== newInviteeIds.length) {
+      const invalid = newInviteeIds.filter(
+        (id) => !existingUserIds.includes(id),
+      );
+      console.error('Found invalid IDs in newInviteeIds:', invalid);
+      throw new BadRequestException(
+        `Some selected users are invalid. Please refresh your saved list and try again.`,
+      );
+    }
+
+    const invitations = await this.prisma.$transaction(async (tx) => {
+      // Create invitations - use validated IDs only
+      const createdInvitations = await Promise.all(
+        validatedNewInviteeIds.map((inviteeId) =>
+          tx.eventInvitation.create({
+            data: {
+              eventId: dto.eventId,
+              inviterId,
+              inviteeId,
+              personalMessage: dto.personalMessage,
+            },
+            include: {
+              invitee: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  avatarUrl: true,
+                },
               },
             },
-          },
-        }),
-      ),
-    );
+          }),
+        ),
+      );
+
+      // Update event status from draft to active if this is the first invitation
+      if (event.status === 'draft') {
+        await tx.event.update({
+          where: { id: dto.eventId },
+          data: { status: 'active' },
+        });
+      }
+
+      return createdInvitations;
+    });
 
     return {
       message: `Successfully sent ${invitations.length} invitations`,

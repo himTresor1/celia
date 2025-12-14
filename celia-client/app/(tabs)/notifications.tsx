@@ -1,6 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, RefreshControl, Alert, Modal } from 'react-native';
-import { Bell, Check, X, Calendar, MapPin, Clock, AlertCircle, User as UserIcon } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  RefreshControl,
+  Alert,
+  Modal,
+} from 'react-native';
+import {
+  Bell,
+  Check,
+  X,
+  Calendar,
+  MapPin,
+  Clock,
+  AlertCircle,
+  User as UserIcon,
+} from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { router, useFocusEffect } from 'expo-router';
@@ -32,12 +51,16 @@ interface Invitation {
 export default function NotificationsScreen() {
   const { user } = useAuth();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [filteredInvitations, setFilteredInvitations] = useState<Invitation[]>([]);
+  const [filteredInvitations, setFilteredInvitations] = useState<Invitation[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<'pending' | 'going' | 'declined'>('pending');
   const [showDeclineModal, setShowDeclineModal] = useState(false);
-  const [selectedInvitation, setSelectedInvitation] = useState<string | null>(null);
+  const [selectedInvitation, setSelectedInvitation] = useState<string | null>(
+    null
+  );
   const [declineReason, setDeclineReason] = useState<string | null>(null);
 
   useFocusEffect(
@@ -71,7 +94,7 @@ export default function NotificationsScreen() {
   const filterInvitations = () => {
     const statusMap: Record<typeof tab, string> = {
       pending: 'pending',
-      going: 'accepted',
+      going: 'going', // Backend uses 'going' for accepted
       declined: 'rejected',
     };
     const filtered = invitations.filter((inv) => inv.status === statusMap[tab]);
@@ -90,7 +113,10 @@ export default function NotificationsScreen() {
       fetchInvitations();
     } catch (error: any) {
       console.error('Error accepting invitation:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to accept invitation');
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Failed to accept invitation'
+      );
     }
   };
 
@@ -111,32 +137,34 @@ export default function NotificationsScreen() {
       fetchInvitations();
     } catch (error: any) {
       console.error('Error declining invitation:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to decline invitation');
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Failed to decline invitation'
+      );
     }
   };
 
   const handleChangeRSVP = async (invitationId: string) => {
-    Alert.alert(
-      'Change RSVP',
-      "Change to 'Can't Go'?",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.respondToInvitation(invitationId, 'rejected');
-              Alert.alert('Updated', 'Your RSVP has been changed.');
-              fetchInvitations();
-            } catch (error: any) {
-              console.error('Error changing RSVP:', error);
-              Alert.alert('Error', error.response?.data?.message || 'Failed to change RSVP');
-            }
-          },
+    Alert.alert('Change RSVP', "Change to 'Can't Go'?", [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Confirm',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.respondToInvitation(invitationId, 'rejected');
+            Alert.alert('Updated', 'Your RSVP has been changed.');
+            fetchInvitations();
+          } catch (error: any) {
+            console.error('Error changing RSVP:', error);
+            Alert.alert(
+              'Error',
+              error.response?.data?.message || 'Failed to change RSVP'
+            );
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const renderInvitation = ({ item }: { item: Invitation }) => {
@@ -214,7 +242,7 @@ export default function NotificationsScreen() {
             </View>
           )}
 
-          {item.status === 'accepted' && (
+          {item.status === 'going' && (
             <TouchableOpacity
               style={styles.changeRSVPButton}
               onPress={() => handleChangeRSVP(item.id)}
@@ -228,8 +256,10 @@ export default function NotificationsScreen() {
   };
 
   const pendingCount = invitations.filter((i) => i.status === 'pending').length;
-  const goingCount = invitations.filter((i) => i.status === 'accepted').length;
-  const declinedCount = invitations.filter((i) => i.status === 'rejected').length;
+  const goingCount = invitations.filter((i) => i.status === 'going').length;
+  const declinedCount = invitations.filter(
+    (i) => i.status === 'rejected'
+  ).length;
 
   return (
     <View style={styles.container}>
@@ -308,7 +338,9 @@ export default function NotificationsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Decline Invitation</Text>
-            <Text style={styles.modalSubtitle}>Are you sure you want to decline?</Text>
+            <Text style={styles.modalSubtitle}>
+              Are you sure you want to decline?
+            </Text>
 
             <View style={styles.reasonOptions}>
               <Text style={styles.reasonLabel}>Reason (optional):</Text>
@@ -331,14 +363,16 @@ export default function NotificationsScreen() {
               <TouchableOpacity
                 style={[
                   styles.reasonOption,
-                  declineReason === 'not_interested' && styles.reasonOptionActive,
+                  declineReason === 'not_interested' &&
+                    styles.reasonOptionActive,
                 ]}
                 onPress={() => setDeclineReason('not_interested')}
               >
                 <Text
                   style={[
                     styles.reasonText,
-                    declineReason === 'not_interested' && styles.reasonTextActive,
+                    declineReason === 'not_interested' &&
+                      styles.reasonTextActive,
                   ]}
                 >
                   Not interested
