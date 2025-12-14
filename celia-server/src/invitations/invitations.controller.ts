@@ -8,6 +8,8 @@ import {
   Param,
   UseGuards,
   Query,
+  Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -30,6 +32,8 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class InvitationsController {
+  private readonly logger = new Logger(InvitationsController.name);
+
   constructor(private invitationsService: InvitationsService) {}
 
   @Post()
@@ -68,8 +72,59 @@ export class InvitationsController {
     status: 404,
     description: 'Event not found',
   })
-  bulkCreate(@CurrentUser() user: any, @Body() dto: BulkInviteDto) {
-    return this.invitationsService.bulkCreate(user.id, dto);
+  async bulkCreate(@CurrentUser() user: any, @Body() dto: BulkInviteDto) {
+    this.logger.log(
+      `[BULK_INVITE_CONTROLLER] Received bulk invite request - UserId: ${user?.id}, EventId: ${dto?.eventId}, InviteeCount: ${dto?.inviteeIds?.length || 0}`,
+    );
+
+    try {
+      // Validate request data
+      if (!dto.eventId) {
+        this.logger.error(
+          `[BULK_INVITE_CONTROLLER] Missing eventId in request - UserId: ${user?.id}`,
+        );
+        throw new BadRequestException('Event ID is required');
+      }
+
+      if (!dto.inviteeIds || dto.inviteeIds.length === 0) {
+        this.logger.error(
+          `[BULK_INVITE_CONTROLLER] Missing or empty inviteeIds in request - UserId: ${user?.id}, EventId: ${dto.eventId}`,
+        );
+        throw new BadRequestException('At least one invitee ID is required');
+      }
+
+      if (!user?.id) {
+        this.logger.error(
+          `[BULK_INVITE_CONTROLLER] Missing user ID in request context`,
+        );
+        throw new BadRequestException('User ID is required');
+      }
+
+      this.logger.debug(
+        `[BULK_INVITE_CONTROLLER] Request validated - Proceeding to service layer`,
+      );
+
+      const result = await this.invitationsService.bulkCreate(user.id, dto);
+
+      this.logger.log(
+        `[BULK_INVITE_CONTROLLER] Bulk invite completed successfully - UserId: ${user.id}, EventId: ${dto.eventId}, Created: ${result.invitations?.length || 0}, Skipped: ${result.skipped || 0}`,
+      );
+
+      return result;
+    } catch (error: any) {
+      this.logger.error(
+        `[BULK_INVITE_CONTROLLER] Error in bulk invite endpoint - UserId: ${user?.id}, EventId: ${dto?.eventId}, ErrorType: ${error.constructor?.name || 'Unknown'}, ErrorMessage: ${error.message || 'Unknown error'}`,
+      );
+      this.logger.error(
+        `[BULK_INVITE_CONTROLLER] Error stack: ${error.stack || 'No stack trace'}`,
+      );
+      this.logger.error(
+        `[BULK_INVITE_CONTROLLER] Request body: ${JSON.stringify(dto, null, 2)}`,
+      );
+
+      // Re-throw the error so NestJS exception filters can handle it properly
+      throw error;
+    }
   }
 
   @Get('my')
