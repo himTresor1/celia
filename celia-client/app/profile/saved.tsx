@@ -114,23 +114,25 @@ export default function SavedListScreen() {
       if (result.error) {
         Alert.alert('Error', result.error);
       } else {
-        Alert.alert(
-          'Success',
-          `Sent ${selectedUsers.length} invitation${
-            selectedUsers.length !== 1 ? 's' : ''
-          }!`,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                setShowInviteModal(false);
-                setSelectedUsers([]);
-                // Refresh events list in case status changed
-                loadMyEvents();
-              },
+        // Server returns: { message, invitations, skipped }
+        const sentCount = result.data?.invitations?.length || selectedUsers.length;
+        const skippedCount = result.data?.skipped || 0;
+        let successMessage = `Sent ${sentCount} invitation${sentCount !== 1 ? 's' : ''}!`;
+        if (skippedCount > 0) {
+          successMessage += ` (${skippedCount} already invited)`;
+        }
+        
+        Alert.alert('Success', successMessage, [
+          {
+            text: 'OK',
+            onPress: () => {
+              setShowInviteModal(false);
+              setSelectedUsers([]);
+              // Refresh events list in case status changed
+              loadMyEvents();
             },
-          ]
-        );
+          },
+        ]);
       }
     } catch (error: any) {
       console.error('Error sending bulk invitations:', error);

@@ -273,7 +273,13 @@ class ApiClient {
   }
 
   async bulkInvite(data: { eventId: string; inviteeIds: string[]; message?: string }) {
-    const response = await this.client.post('/invitations/bulk', data);
+    // Map client's 'message' to server's 'personalMessage'
+    const payload = {
+      eventId: data.eventId,
+      inviteeIds: data.inviteeIds,
+      personalMessage: data.message,
+    };
+    const response = await this.client.post('/invitations/bulk', payload);
     return response.data;
   }
 
