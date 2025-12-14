@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '@/lib/api';
 
@@ -32,7 +38,11 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string
+  ) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   completeProfile: () => void;
@@ -104,7 +114,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.login(email, password);
 
-      setSession({ access_token: response.access_token });
+      // Backend returns 'token', not 'access_token'
+      const token = response.token || response.access_token;
+      if (token) {
+        setSession({ access_token: token });
+      }
+
       setUser(response.user);
 
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
@@ -113,7 +128,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { error: null };
     } catch (error: any) {
-      return { error: new Error(error.response?.data?.message || 'Login failed') };
+      console.error('[AuthContext] Login error:', error);
+      return {
+        error: new Error(error.response?.data?.message || 'Login failed'),
+      };
     }
   };
 
@@ -121,7 +139,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.register({ email, password, fullName });
 
-      setSession({ access_token: response.access_token });
+      // Backend returns 'token', not 'access_token'
+      const token = response.token || response.access_token;
+      if (token) {
+        setSession({ access_token: token });
+      }
+
       setUser(response.user);
 
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
@@ -130,7 +153,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { error: null };
     } catch (error: any) {
-      return { error: new Error(error.response?.data?.message || 'Registration failed') };
+      console.error('[AuthContext] Registration error:', error);
+      return {
+        error: new Error(
+          error.response?.data?.message || 'Registration failed'
+        ),
+      };
     }
   };
 

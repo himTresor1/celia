@@ -1,4 +1,14 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+  Modal,
+} from 'react-native';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { X, Mail, Send } from 'lucide-react-native';
@@ -28,7 +38,9 @@ export default function SavedListScreen() {
     try {
       const { data, error } = await apiHelpers.getSavedUsers(user.id);
       if (data) {
-        setSavedUsers(data);
+        // Handle both direct array and paginated response
+        const items = Array.isArray(data) ? data : data.items || [];
+        setSavedUsers(items);
       }
     } catch (error) {
       console.error('Error loading saved users:', error);
@@ -55,13 +67,23 @@ export default function SavedListScreen() {
 
     const { error } = await apiHelpers.removeFromSaved(user.id, savedUserId);
     if (!error) {
-      setSavedUsers((prev) => prev.filter((item) => item.saved_user_id !== savedUserId));
+      setSavedUsers((prev) =>
+        prev.filter((item) => {
+          // Use same logic as renderItem to extract user ID
+          const savedUser = item.user || item.saved_user || item;
+          const userId =
+            savedUser.id || item.savedUserId || savedUser.saved_user_id;
+          return userId !== savedUserId;
+        })
+      );
     }
   };
 
   const toggleSelectUser = (userId: string) => {
     setSelectedUsers((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
     );
   };
 
@@ -69,7 +91,14 @@ export default function SavedListScreen() {
     if (selectedUsers.length === savedUsers.length) {
       setSelectedUsers([]);
     } else {
-      setSelectedUsers(savedUsers.map((item) => item.saved_user_id));
+      setSelectedUsers(
+        savedUsers.map((item) => {
+          // Use same logic as renderItem to extract user ID
+          // API returns: { id, savedAt, context, notes, user: { id, fullName, ... } }
+          const savedUser = item.user || item.saved_user || item;
+          return savedUser.id || item.savedUserId || savedUser.saved_user_id;
+        })
+      );
     }
   };
 
@@ -81,14 +110,30 @@ export default function SavedListScreen() {
 
     setInviting(true);
     try {
-      await apiHelpers.bulkInviteToEvent(eventId, selectedUsers);
-      Alert.alert(
-        'Success',
-        `Sent ${selectedUsers.length} invitation${selectedUsers.length !== 1 ? 's' : ''}!`
-      );
-      setShowInviteModal(false);
-      setSelectedUsers([]);
+      const result = await apiHelpers.bulkInviteToEvent(eventId, selectedUsers);
+      if (result.error) {
+        Alert.alert('Error', result.error);
+      } else {
+        Alert.alert(
+          'Success',
+          `Sent ${selectedUsers.length} invitation${
+            selectedUsers.length !== 1 ? 's' : ''
+          }!`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setShowInviteModal(false);
+                setSelectedUsers([]);
+                // Refresh events list in case status changed
+                loadMyEvents();
+              },
+            },
+          ]
+        );
+      }
     } catch (error: any) {
+      console.error('Error sending bulk invitations:', error);
       Alert.alert('Error', error.message || 'Failed to send invitations');
     } finally {
       setInviting(false);
@@ -96,22 +141,27 @@ export default function SavedListScreen() {
   };
 
   const renderItem = ({ item }: any) => {
-    const savedUser = item.saved_user;
-    const rating = apiHelpers.displayRating(savedUser.attractiveness_score);
-    const isSelected = selectedUsers.includes(savedUser.id);
+    // Handle both nested saved_user structure and flat structure
+    // API returns: { id, savedAt, context, notes, user: { id, fullName, ... } }
+    const savedUser = item.user || item.saved_user || item;
+    const userId = savedUser.id || item.savedUserId || savedUser.saved_user_id;
+    const rating = apiHelpers.displayRating(
+      savedUser.attractiveness_score || 0
+    );
+    const isSelected = selectedUsers.includes(userId);
 
     return (
       <TouchableOpacity
         style={[styles.card, isSelected && styles.cardSelected]}
-        onPress={() => toggleSelectUser(savedUser.id)}
+        onPress={() => toggleSelectUser(userId)}
       >
-        <View
-          style={[styles.checkbox, isSelected && styles.checkboxSelected]}
-        >
+        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
           {isSelected && <Text style={styles.checkmark}>✓</Text>}
         </View>
         <Image
-          source={{ uri: savedUser.avatar_url || 'https://via.placeholder.com/80' }}
+          source={{
+            uri: savedUser.avatar_url || 'https://via.placeholder.com/80',
+          }}
           style={styles.avatar}
         />
         <View style={styles.info}>
@@ -129,7 +179,7 @@ export default function SavedListScreen() {
             style={styles.removeButton}
             onPress={(e) => {
               e.stopPropagation();
-              handleRemove(savedUser.id);
+              handleRemove(userId);
             }}
           >
             <X size={20} color="#FF3B30" />
@@ -159,9 +209,14 @@ export default function SavedListScreen() {
         </View>
         {savedUsers.length > 0 && (
           <View style={styles.topActions}>
-            <TouchableOpacity style={styles.selectAllButton} onPress={selectAll}>
+            <TouchableOpacity
+              style={styles.selectAllButton}
+              onPress={selectAll}
+            >
               <Text style={styles.selectAllText}>
-                {selectedUsers.length === savedUsers.length ? 'Deselect All' : 'Select All'}
+                {selectedUsers.length === savedUsers.length
+                  ? 'Deselect All'
+                  : 'Select All'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -179,7 +234,15 @@ export default function SavedListScreen() {
         <FlatList
           data={savedUsers}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => {
+            const savedUser = item.saved_user || item;
+            return (
+              savedUser.id ||
+              savedUser.saved_user_id ||
+              item.id ||
+              `saved-${index}`
+            );
+          }}
           refreshing={refreshing}
           onRefresh={() => {
             setRefreshing(true);
@@ -220,7 +283,9 @@ export default function SavedListScreen() {
             {myEvents.length === 0 ? (
               <View style={styles.noEvents}>
                 <Text style={styles.noEventsText}>No upcoming events</Text>
-                <Text style={styles.noEventsSubtext}>Create an event first</Text>
+                <Text style={styles.noEventsSubtext}>
+                  Create an event first
+                </Text>
               </View>
             ) : (
               <FlatList
@@ -234,7 +299,9 @@ export default function SavedListScreen() {
                   >
                     <View style={styles.eventOptionInfo}>
                       <Text style={styles.eventOptionName}>{item.name}</Text>
-                      <Text style={styles.eventOptionDate}>{item.eventDate}</Text>
+                      <Text style={styles.eventOptionDate}>
+                        {item.eventDate}
+                      </Text>
                     </View>
                     <Mail size={20} color={theme.colors.primary} />
                   </TouchableOpacity>
