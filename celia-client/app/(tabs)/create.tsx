@@ -28,6 +28,7 @@ import {
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import WebDatePicker from '@/components/WebDatePicker';
+import { formatDate, formatTime } from '@/lib/timeUtils';
 
 interface EventCategory {
   id: string;
@@ -263,21 +264,6 @@ export default function CreateScreen() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   const resetForm = () => {

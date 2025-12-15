@@ -30,6 +30,7 @@ function RootLayoutNav() {
     const inEvent = segments[0] === 'event';
     const inBrowse = segments[0] === 'browse';
     const inSaved = segments[0] === 'saved';
+    const inProfile = segments[0] === 'profile';
 
     // Don't interfere with splash, onboarding, or navigation flows
     if (
@@ -38,18 +39,26 @@ function RootLayoutNav() {
       inGetStarted ||
       inEvent ||
       inBrowse ||
-      inSaved
+      inSaved ||
+      inProfile
     ) {
       return;
     }
 
     // Handle authenticated users
     if (session && profile) {
-      if (!profile.is_profile_completed && !inProfileSetup) {
-        router.replace('/profile-setup');
-      } else if (profile.is_profile_completed && !inTabs && !inGetStarted) {
+      // Only redirect to profile setup if explicitly navigating to tabs
+      // Don't force redirect on initial load - let user access login if they want
+      if (profile.is_profile_completed && !inTabs && !inGetStarted && !inAuthGroup && !inProfileSetup) {
         router.replace('/(tabs)');
       }
+      // If user tries to access tabs with incomplete profile, redirect to setup
+      if (!profile.is_profile_completed && inTabs) {
+        router.replace('/profile-setup');
+      }
+    } else if (!session && !inAuthGroup && !inSplash && !inOnboarding && !inGetStarted) {
+      // Unauthenticated users should go to login
+      router.replace('/(auth)/login');
     }
   }, [session, segments, loading, profile]);
 
@@ -62,6 +71,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="profile-setup" />
+      <Stack.Screen name="profile" />
       <Stack.Screen name="event" />
       <Stack.Screen name="browse" />
       <Stack.Screen name="saved" />

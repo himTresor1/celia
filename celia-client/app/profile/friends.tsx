@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
-import { UserMinus, Zap } from 'lucide-react-native';
+import { UserMinus, Zap, ArrowLeft, Filter, Send } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiHelpers } from '@/lib/apiHelpers';
 import { theme } from '@/constants/theme';
+import ListFiltersModal from '@/components/ListFiltersModal';
+import SendInvitationModal from '@/components/SendInvitationModal';
 
 export default function FriendsListScreen() {
   const { user } = useAuth();
@@ -12,10 +14,48 @@ export default function FriendsListScreen() {
   const [pending, setPending] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [filters, setFilters] = useState<any>({});
+  const [allFriends, setAllFriends] = useState<any[]>([]); // Store unfiltered list
+
+  // Extract unique colleges and interests from friends
+  const getFilterOptions = () => {
+    const colleges = new Set<string>();
+    const interests = new Set<string>();
+
+    allFriends.forEach((item: any) => {
+      const friend = item.friend;
+      if (friend.college_name || friend.collegeName) {
+        colleges.add(friend.college_name || friend.collegeName);
+      }
+      if (friend.interests && Array.isArray(friend.interests)) {
+        friend.interests.forEach((interest: string) => interests.add(interest));
+      }
+    });
+
+    return {
+      colleges: Array.from(colleges).map((college) => ({
+        id: college,
+        label: college,
+        value: college,
+      })),
+      interests: Array.from(interests).map((interest) => ({
+        id: interest,
+        label: interest,
+        value: interest,
+      })),
+    };
+  };
 
   useEffect(() => {
     loadFriends();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [filters, allFriends]);
 
   const loadFriends = async () => {
     if (!user) return;
@@ -26,13 +66,70 @@ export default function FriendsListScreen() {
         apiHelpers.getPendingFriendRequests(user.id),
       ]);
 
-      if (friendsResult.data) setFriends(friendsResult.data);
+      if (friendsResult.data) {
+        setAllFriends(friendsResult.data);
+        setFriends(friendsResult.data);
+      }
       if (pendingResult.data) setPending(pendingResult.data);
     } catch (error) {
       console.error('Error loading friends:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...allFriends];
+
+    // Search filter
+    if (filters.search) {
+      const query = filters.search.toLowerCase();
+      filtered = filtered.filter((item: any) => {
+        const friend = item.friend;
+        const name = friend.full_name || friend.fullName || '';
+        const college = friend.college_name || friend.collegeName || '';
+        return name.toLowerCase().includes(query) || 
+               college.toLowerCase().includes(query);
+      });
+    }
+
+    // College filter
+    if (filters.collegeId) {
+      filtered = filtered.filter((item: any) => {
+        const friend = item.friend;
+        const college = friend.college_name || friend.collegeName || '';
+        return college === filters.collegeId;
+      });
+    }
+
+    // Interests filter
+    if (filters.interests && filters.interests.length > 0) {
+      filtered = filtered.filter((item: any) => {
+        const friend = item.friend;
+        const userInterests = friend.interests || [];
+        return filters.interests.some((interest: string) => 
+          userInterests.includes(interest)
+        );
+      });
+    }
+
+    setFriends(filtered);
+  };
+
+  const toggleSelectUser = (userId: string) => {
+    setSelectedUsers((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const selectAll = () => {
+    if (selectedUsers.length === friends.length) {
+      setSelectedUsers([]);
+    } else {
+      setSelectedUsers(friends.map((item) => item.friend.id));
     }
   };
 
@@ -61,12 +158,16 @@ export default function FriendsListScreen() {
   const renderFriend = ({ item }: any) => {
     const friend = item.friend;
     const rating = apiHelpers.displayRating(friend.attractiveness_score);
+    const isSelected = selectedUsers.includes(friend.id);
 
     return (
       <TouchableOpacity
-        style={styles.card}
-        onPress={() => router.push(`/user/${friend.id}`)}
+        style={[styles.card, isSelected && styles.cardSelected]}
+        onPress={() => toggleSelectUser(friend.id)}
       >
+        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+          {isSelected && <Text style={styles.checkmark}>✓</Text>}
+        </View>
         <Image
           source={{ uri: friend.avatar_url || 'https://via.placeholder.com/70' }}
           style={styles.avatar}
@@ -78,7 +179,10 @@ export default function FriendsListScreen() {
         </View>
         <TouchableOpacity
           style={styles.removeButton}
-          onPress={() => handleRemoveFriend(friend.id)}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleRemoveFriend(friend.id);
+          }}
         >
           <UserMinus size={20} color="#FF3B30" />
         </TouchableOpacity>
@@ -131,47 +235,227 @@ export default function FriendsListScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Friends</Text>
-      <Text style={styles.subtitle}>{friends.length} friends</Text>
-
-      {pending.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>Pending Connections</Text>
-          <FlatList
-            data={pending}
-            renderItem={renderPending}
-            keyExtractor={(item) => item.id}
-            style={styles.pendingList}
-          />
-        </>
-      )}
-
-      {friends.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>No friends yet</Text>
-          <Text style={styles.emptySubtext}>
-            Send Energy Pulses to connect with others
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <ArrowLeft size={24} color="#1A1A1A" />
+        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>Friends</Text>
+          <Text style={styles.subtitle}>
+            {friends.length} friends
+            {selectedUsers.length > 0 && ` • ${selectedUsers.length} selected`}
           </Text>
         </View>
-      ) : (
-        <FlatList
-          data={friends}
-          renderItem={renderFriend}
-          keyExtractor={(item) => item.friendshipId}
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            loadFriends();
-          }}
-          contentContainerStyle={styles.list}
-        />
-      )}
-    </View>
+        <View style={styles.headerRight}>
+          {friends.length > 0 && (
+            <>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setShowFilters(true)}
+              >
+                <Filter size={20} color="#3AFF6E" />
+              </TouchableOpacity>
+              {selectedUsers.length > 0 && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setShowInviteModal(true)}
+                >
+                  <Send size={20} color="#3AFF6E" />
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </View>
+      </View>
+      <View style={styles.container}>
+        {pending.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Pending Connections</Text>
+            <FlatList
+              data={pending}
+              renderItem={renderPending}
+              keyExtractor={(item) => item.id}
+              style={styles.pendingList}
+            />
+          </>
+        )}
+
+        {friends.length > 0 && (
+          <View style={styles.topActions}>
+            <TouchableOpacity
+              style={styles.selectAllButton}
+              onPress={selectAll}
+            >
+              <Text style={styles.selectAllText}>
+                {selectedUsers.length === friends.length
+                  ? 'Deselect All'
+                  : 'Select All'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {friends.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>No friends yet</Text>
+            <Text style={styles.emptySubtext}>
+              Send Energy Pulses to connect with others
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={friends}
+            renderItem={renderFriend}
+            keyExtractor={(item) => item.friendshipId}
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadFriends();
+            }}
+            contentContainerStyle={styles.list}
+          />
+        )}
+
+        {selectedUsers.length > 0 && (
+          <View style={styles.floatingButton}>
+            <TouchableOpacity
+              style={styles.inviteButton}
+              onPress={() => setShowInviteModal(true)}
+            >
+              <Send size={20} color="#fff" />
+              <Text style={styles.inviteButtonText}>
+                Invite {selectedUsers.length} to Event
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      <SendInvitationModal
+        visible={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        selectedUserIds={selectedUsers}
+        onSuccess={() => {
+          setSelectedUsers([]);
+          loadFriends();
+        }}
+      />
+
+      <ListFiltersModal
+        visible={showFilters}
+        onClose={() => setShowFilters(false)}
+        onApply={(appliedFilters) => {
+          setFilters(appliedFilters);
+        }}
+        filterOptions={getFilterOptions()}
+        currentFilters={filters}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+    marginRight: 12,
+  },
+  headerContent: {
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  iconButton: {
+    padding: 8,
+  },
+  topActions: {
+    marginBottom: 12,
+  },
+  selectAllButton: {
+    padding: 12,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  selectAllText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3AFF6E',
+  },
+  cardSelected: {
+    borderWidth: 2,
+    borderColor: '#3AFF6E',
+    backgroundColor: '#F0FFF4',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#3AFF6E',
+    borderColor: '#3AFF6E',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+  },
+  inviteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#3AFF6E',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  inviteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',

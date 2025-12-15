@@ -8,14 +8,17 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  SafeAreaView,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
-import { X, Mail, Send } from 'lucide-react-native';
+import { X, Mail, Send, ArrowLeft, Filter } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiHelpers } from '@/lib/apiHelpers';
 import { api } from '@/lib/api';
 import { theme } from '@/constants/theme';
+import ListFiltersModal from '@/components/ListFiltersModal';
+import SendInvitationModal from '@/components/SendInvitationModal';
 
 export default function SavedListScreen() {
   const { user } = useAuth();
@@ -23,14 +26,50 @@ export default function SavedListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [showInviteModal, setShowInviteModal] = useState(false);
   const [myEvents, setMyEvents] = useState<any[]>([]);
   const [inviting, setInviting] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [filters, setFilters] = useState<any>({});
+  const [allSavedUsers, setAllSavedUsers] = useState<any[]>([]); // Store unfiltered list
+
+  // Extract unique colleges and interests from saved users
+  const getFilterOptions = () => {
+    const colleges = new Set<string>();
+    const interests = new Set<string>();
+
+    allSavedUsers.forEach((item: any) => {
+      const savedUser = item.user || item.saved_user || item;
+      if (savedUser.college_name || savedUser.collegeName) {
+        colleges.add(savedUser.college_name || savedUser.collegeName);
+      }
+      if (savedUser.interests && Array.isArray(savedUser.interests)) {
+        savedUser.interests.forEach((interest: string) => interests.add(interest));
+      }
+    });
+
+    return {
+      colleges: Array.from(colleges).map((college, index) => ({
+        id: college,
+        label: college,
+        value: college,
+      })),
+      interests: Array.from(interests).map((interest, index) => ({
+        id: interest,
+        label: interest,
+        value: interest,
+      })),
+    };
+  };
 
   useEffect(() => {
     loadSavedUsers();
     loadMyEvents();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [filters, allSavedUsers]);
 
   const loadSavedUsers = async () => {
     if (!user) return;
@@ -40,7 +79,7 @@ export default function SavedListScreen() {
       if (data) {
         // Handle both direct array and paginated response
         const items = Array.isArray(data) ? data : data.items || [];
-        setSavedUsers(items);
+        setAllSavedUsers(items);
       }
     } catch (error) {
       console.error('Error loading saved users:', error);
@@ -62,20 +101,59 @@ export default function SavedListScreen() {
     }
   };
 
+  const applyFilters = () => {
+    let filtered = [...allSavedUsers];
+
+    // Search filter
+    if (filters.search) {
+      const query = filters.search.toLowerCase();
+      filtered = filtered.filter((item: any) => {
+        const savedUser = item.user || item.saved_user || item;
+        const name = savedUser.full_name || savedUser.fullName || '';
+        const college = savedUser.college_name || savedUser.collegeName || '';
+        return name.toLowerCase().includes(query) || 
+               college.toLowerCase().includes(query);
+      });
+    }
+
+    // College filter
+    if (filters.collegeId) {
+      filtered = filtered.filter((item: any) => {
+        const savedUser = item.user || item.saved_user || item;
+        const college = savedUser.college_name || savedUser.collegeName || '';
+        return college === filters.collegeId;
+      });
+    }
+
+    // Interests filter
+    if (filters.interests && filters.interests.length > 0) {
+      filtered = filtered.filter((item: any) => {
+        const savedUser = item.user || item.saved_user || item;
+        const userInterests = savedUser.interests || [];
+        return filters.interests.some((interest: string) => 
+          userInterests.includes(interest)
+        );
+      });
+    }
+
+    setSavedUsers(filtered);
+  };
+
   const handleRemove = async (savedUserId: string) => {
     if (!user) return;
 
-    const { error } = await apiHelpers.removeFromSaved(user.id, savedUserId);
+    const { error } = await apiHelpers.removeFromSaved(savedUserId);
     if (!error) {
-      setSavedUsers((prev) =>
+      // Update both filtered and unfiltered lists
+      setAllSavedUsers((prev) =>
         prev.filter((item) => {
-          // Use same logic as renderItem to extract user ID
           const savedUser = item.user || item.saved_user || item;
           const userId =
             savedUser.id || item.savedUserId || savedUser.saved_user_id;
           return userId !== savedUserId;
         })
       );
+      // applyFilters will update savedUsers automatically via useEffect
     }
   };
 
@@ -102,45 +180,6 @@ export default function SavedListScreen() {
     }
   };
 
-  const handleBulkInvite = async (eventId: string) => {
-    if (selectedUsers.length === 0) {
-      Alert.alert('No Users Selected', 'Please select users to invite');
-      return;
-    }
-
-    setInviting(true);
-    try {
-      const result = await apiHelpers.bulkInviteToEvent(eventId, selectedUsers);
-      if (result.error) {
-        Alert.alert('Error', result.error);
-      } else {
-        // Server returns: { message, invitations, skipped }
-        const sentCount = result.data?.invitations?.length || selectedUsers.length;
-        const skippedCount = result.data?.skipped || 0;
-        let successMessage = `Sent ${sentCount} invitation${sentCount !== 1 ? 's' : ''}!`;
-        if (skippedCount > 0) {
-          successMessage += ` (${skippedCount} already invited)`;
-        }
-        
-        Alert.alert('Success', successMessage, [
-          {
-            text: 'OK',
-            onPress: () => {
-              setShowInviteModal(false);
-              setSelectedUsers([]);
-              // Refresh events list in case status changed
-              loadMyEvents();
-            },
-          },
-        ]);
-      }
-    } catch (error: any) {
-      console.error('Error sending bulk invitations:', error);
-      Alert.alert('Error', error.message || 'Failed to send invitations');
-    } finally {
-      setInviting(false);
-    }
-  };
 
   const renderItem = ({ item }: any) => {
     // Handle both nested saved_user structure and flat structure
@@ -200,32 +239,44 @@ export default function SavedListScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.topBar}>
-        <View>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <ArrowLeft size={24} color="#1A1A1A" />
+        </TouchableOpacity>
+        <View style={styles.headerContent}>
           <Text style={styles.title}>Saved List</Text>
           <Text style={styles.subtitle}>
             {savedUsers.length} people saved
             {selectedUsers.length > 0 && ` • ${selectedUsers.length} selected`}
           </Text>
         </View>
-        {savedUsers.length > 0 && (
-          <View style={styles.topActions}>
-            <TouchableOpacity
-              style={styles.selectAllButton}
-              onPress={selectAll}
-            >
-              <Text style={styles.selectAllText}>
-                {selectedUsers.length === savedUsers.length
-                  ? 'Deselect All'
-                  : 'Select All'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={styles.headerRight}>
+          {savedUsers.length > 0 && (
+            <>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setShowFilters(true)}
+              >
+                <Filter size={20} color="#3AFF6E" />
+              </TouchableOpacity>
+              {selectedUsers.length > 0 && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setShowInviteModal(true)}
+                >
+                  <Send size={20} color="#3AFF6E" />
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </View>
       </View>
-
-      {savedUsers.length === 0 ? (
+      <View style={styles.container}>
+        {savedUsers.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>No saved users yet</Text>
           <Text style={styles.emptySubtext}>
@@ -266,66 +317,38 @@ export default function SavedListScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      )}
+        )}
 
-      <Modal
-        visible={showInviteModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowInviteModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Event</Text>
-            <Text style={styles.modalSubtitle}>
-              Choose an event to invite {selectedUsers.length}{' '}
-              {selectedUsers.length === 1 ? 'person' : 'people'} to:
-            </Text>
+        <SendInvitationModal
+          visible={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          selectedUserIds={selectedUsers}
+          onSuccess={() => {
+            setSelectedUsers([]);
+            loadSavedUsers();
+            loadMyEvents();
+          }}
+        />
 
-            {myEvents.length === 0 ? (
-              <View style={styles.noEvents}>
-                <Text style={styles.noEventsText}>No upcoming events</Text>
-                <Text style={styles.noEventsSubtext}>
-                  Create an event first
-                </Text>
-              </View>
-            ) : (
-              <FlatList
-                data={myEvents}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.eventOption}
-                    onPress={() => handleBulkInvite(item.id)}
-                    disabled={inviting}
-                  >
-                    <View style={styles.eventOptionInfo}>
-                      <Text style={styles.eventOptionName}>{item.name}</Text>
-                      <Text style={styles.eventOptionDate}>
-                        {item.eventDate}
-                      </Text>
-                    </View>
-                    <Mail size={20} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                )}
-                style={styles.eventList}
-              />
-            )}
-
-            <TouchableOpacity
-              style={styles.modalCancelButton}
-              onPress={() => setShowInviteModal(false)}
-            >
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </View>
+        <ListFiltersModal
+          visible={showFilters}
+          onClose={() => setShowFilters(false)}
+          onApply={(appliedFilters) => {
+            setFilters(appliedFilters);
+          }}
+          filterOptions={getFilterOptions()}
+          currentFilters={filters}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
@@ -334,6 +357,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+    marginRight: 12,
+  },
+  headerContent: {
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconButton: {
+    padding: 8,
   },
   topBar: {
     flexDirection: 'row',
@@ -344,6 +393,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5EA',
+  },
+  content: {
+    flex: 1,
   },
   topActions: {
     flexDirection: 'row',

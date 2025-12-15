@@ -13,25 +13,21 @@ export declare class EventsService {
         };
         category: {
             id: string;
-            createdAt: Date;
             name: string;
+            createdAt: Date;
             icon: string | null;
         };
     } & {
         id: string;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
-        createdAt: Date;
-        updatedAt: Date;
         name: string;
         description: string | null;
-        hostId: string;
-        categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interestTags: string[];
         capacityLimit: number | null;
         isPublic: boolean;
@@ -39,12 +35,12 @@ export declare class EventsService {
         cancellationReason: string | null;
         externalLink: string | null;
         externalLinkType: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        hostId: string;
+        categoryId: string | null;
     }>;
     findAll(userId: string, status?: string, categoryId?: string, search?: string): Promise<({
-        _count: {
-            invitations: number;
-            attendees: number;
-        };
         host: {
             id: string;
             fullName: string;
@@ -53,25 +49,50 @@ export declare class EventsService {
         };
         category: {
             id: string;
-            createdAt: Date;
             name: string;
+            createdAt: Date;
             icon: string | null;
+        };
+        invitations: {
+            id: string;
+            status: string;
+            inviteeId: string;
+            personalMessage: string;
+            invitee: {
+                id: string;
+                fullName: string;
+                collegeName: string;
+                major: string;
+                avatarUrl: string;
+            };
+        }[];
+        attendees: {
+            id: string;
+            user: {
+                id: string;
+                fullName: string;
+                collegeName: string;
+                major: string;
+                avatarUrl: string;
+            };
+            userId: string;
+            joinedAt: Date;
+        }[];
+        _count: {
+            invitations: number;
+            attendees: number;
         };
     } & {
         id: string;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
-        createdAt: Date;
-        updatedAt: Date;
         name: string;
         description: string | null;
-        hostId: string;
-        categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interestTags: string[];
         capacityLimit: number | null;
         isPublic: boolean;
@@ -79,6 +100,10 @@ export declare class EventsService {
         cancellationReason: string | null;
         externalLink: string | null;
         externalLinkType: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        hostId: string;
+        categoryId: string | null;
     })[]>;
     getMyEvents(userId: string, status?: string): Promise<{
         stats: {
@@ -95,8 +120,8 @@ export declare class EventsService {
         };
         category: {
             id: string;
-            createdAt: Date;
             name: string;
+            createdAt: Date;
             icon: string | null;
         };
         invitations: {
@@ -104,24 +129,20 @@ export declare class EventsService {
             status: string;
             invitee: {
                 id: string;
-                fullName: string;
                 photoUrls: import("@prisma/client/runtime/library").JsonValue;
+                fullName: string;
             };
         }[];
         id: string;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
-        createdAt: Date;
-        updatedAt: Date;
         name: string;
         description: string | null;
-        hostId: string;
-        categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interestTags: string[];
         capacityLimit: number | null;
         isPublic: boolean;
@@ -129,12 +150,12 @@ export declare class EventsService {
         cancellationReason: string | null;
         externalLink: string | null;
         externalLinkType: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        hostId: string;
+        categoryId: string | null;
     }[]>;
     findOne(id: string, userId: string): Promise<{
-        _count: {
-            invitations: number;
-            attendees: number;
-        };
         host: {
             id: string;
             email: string;
@@ -145,14 +166,22 @@ export declare class EventsService {
         };
         category: {
             id: string;
-            createdAt: Date;
             name: string;
+            createdAt: Date;
             icon: string | null;
         };
         invitations: {
             id: string;
             status: string;
+            inviteeId: string;
             personalMessage: string;
+            invitee: {
+                id: string;
+                fullName: string;
+                collegeName: string;
+                major: string;
+                avatarUrl: string;
+            };
         }[];
         attendees: ({
             user: {
@@ -163,25 +192,25 @@ export declare class EventsService {
             };
         } & {
             id: string;
-            userId: string;
             eventId: string;
+            userId: string;
             joinedAt: Date;
         })[];
+        _count: {
+            invitations: number;
+            attendees: number;
+        };
     } & {
         id: string;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
-        createdAt: Date;
-        updatedAt: Date;
         name: string;
         description: string | null;
-        hostId: string;
-        categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interestTags: string[];
         capacityLimit: number | null;
         isPublic: boolean;
@@ -189,6 +218,10 @@ export declare class EventsService {
         cancellationReason: string | null;
         externalLink: string | null;
         externalLinkType: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        hostId: string;
+        categoryId: string | null;
     }>;
     update(id: string, userId: string, dto: UpdateEventDto): Promise<{
         host: {
@@ -198,25 +231,21 @@ export declare class EventsService {
         };
         category: {
             id: string;
-            createdAt: Date;
             name: string;
+            createdAt: Date;
             icon: string | null;
         };
     } & {
         id: string;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
-        createdAt: Date;
-        updatedAt: Date;
         name: string;
         description: string | null;
-        hostId: string;
-        categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interestTags: string[];
         capacityLimit: number | null;
         isPublic: boolean;
@@ -224,6 +253,10 @@ export declare class EventsService {
         cancellationReason: string | null;
         externalLink: string | null;
         externalLinkType: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        hostId: string;
+        categoryId: string | null;
     }>;
     delete(id: string, userId: string): Promise<{
         message: string;
@@ -237,19 +270,15 @@ export declare class EventsService {
             };
         } & {
             id: string;
-            photoUrls: import("@prisma/client/runtime/library").JsonValue;
-            createdAt: Date;
-            updatedAt: Date;
             name: string;
             description: string | null;
-            hostId: string;
-            categoryId: string | null;
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
+            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             interestTags: string[];
             capacityLimit: number | null;
             isPublic: boolean;
@@ -257,6 +286,10 @@ export declare class EventsService {
             cancellationReason: string | null;
             externalLink: string | null;
             externalLinkType: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+            hostId: string;
+            categoryId: string | null;
         };
         user: {
             id: string;
@@ -265,8 +298,8 @@ export declare class EventsService {
         };
     } & {
         id: string;
-        userId: string;
         eventId: string;
+        userId: string;
         joinedAt: Date;
     }>;
     leaveEvent(eventId: string, userId: string): Promise<{
@@ -282,8 +315,8 @@ export declare class EventsService {
         };
     } & {
         id: string;
-        userId: string;
         eventId: string;
+        userId: string;
         joinedAt: Date;
     })[]>;
 }

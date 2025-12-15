@@ -17,34 +17,82 @@ import {
   X,
   AlertCircle,
 } from 'lucide-react-native';
+import { formatDate, formatTime, formatTimeRange } from '@/lib/timeUtils';
 
 interface Event {
   id: string;
   name: string;
   description: string;
-  event_date: string;
-  start_time: string;
-  end_time: string | null;
-  location_name: string;
-  photo_urls: any;
-  interest_tags: string[];
-  capacity_limit: number | null;
-  is_public: boolean;
+  eventDate?: string;
+  event_date?: string;
+  startTime?: string;
+  start_time?: string;
+  endTime?: string | null;
+  end_time?: string | null;
+  locationName?: string;
+  location_name?: string;
+  photoUrls?: any;
+  photo_urls?: any;
+  interestTags?: string[];
+  interest_tags?: string[];
+  capacityLimit?: number | null;
+  capacity_limit?: number | null;
+  isPublic?: boolean;
+  is_public?: boolean;
   status: string;
-  cancellation_reason: string | null;
-  host_id: string;
-  event_categories: {
+  cancellationReason?: string | null;
+  cancellation_reason?: string | null;
+  hostId?: string;
+  host_id?: string;
+  host?: {
+    id: string;
+    fullName: string;
+    avatarUrl?: string;
+    email?: string;
+    collegeName?: string;
+    major?: string;
+  };
+  category?: {
+    id: string;
+    name: string;
+    icon?: string;
+  };
+  event_categories?: {
     name: string;
   } | null;
+  invitations?: Invitation[];
+  attendees?: Array<{
+    id: string;
+    userId: string;
+    joinedAt: string;
+    user: {
+      id: string;
+      fullName: string;
+      avatarUrl?: string;
+      collegeName?: string;
+      major?: string;
+    };
+  }>;
 }
 
 interface Invitation {
   id: string;
   status: string;
-  personal_message: string | null;
-  responded_at: string | null;
-  created_at: string;
-  profiles: {
+  personalMessage?: string | null;
+  personal_message?: string | null;
+  respondedAt?: string | null;
+  responded_at?: string | null;
+  createdAt?: string;
+  created_at?: string;
+  inviteeId?: string;
+  invitee?: {
+    id: string;
+    fullName: string;
+    avatarUrl?: string;
+    collegeName?: string;
+    major?: string;
+  };
+  profiles?: {
     id: string;
     full_name: string;
     email: string;
@@ -63,7 +111,7 @@ export default function EventDetailScreen() {
   const [guestFilter, setGuestFilter] = useState<'all' | 'going' | 'pending' | 'declined'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancellationReason, setCancellationReason] = useState('');
+  const [cancellationReasonInput, setCancellationReasonInput] = useState('');
   const [cancellationMessage, setCancellationMessage] = useState('');
 
   useEffect(() => {
@@ -77,8 +125,15 @@ export default function EventDetailScreen() {
 
   const fetchEventDetails = async () => {
     try {
-      const data = await api.getEvent(id);
+      const response = await api.getEvent(id);
+      // Backend returns { message, data } structure
+      const data = response.data || response;
       setEvent(data as any);
+      
+      // If invitations are included in the event response, use them
+      if (data.invitations && Array.isArray(data.invitations)) {
+        setInvitations(data.invitations);
+      }
     } catch (error) {
       console.error('Failed to fetch event:', error);
     }
@@ -87,8 +142,10 @@ export default function EventDetailScreen() {
 
   const fetchInvitations = async () => {
     try {
-      const data = await api.getEventInvitations(id);
-      setInvitations(data as any);
+      const response = await api.getEventInvitations(id);
+      // Backend returns { message, data } structure
+      const data = response.data || response;
+      setInvitations(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch invitations:', error);
     }
@@ -103,10 +160,15 @@ export default function EventDetailScreen() {
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((inv) =>
-        inv.profiles.full_name.toLowerCase().includes(query) ||
-        inv.profiles.email.toLowerCase().includes(query)
-      );
+      filtered = filtered.filter((inv) => {
+        const invitee = inv.invitee || inv.profiles;
+        if (!invitee) return false;
+        // Handle both camelCase and snake_case structures
+        const name = ('fullName' in invitee ? invitee.fullName : (invitee as any).full_name) || '';
+        const email = ('email' in invitee ? (invitee as any).email : '') || '';
+        return name.toLowerCase().includes(query) || 
+               email.toLowerCase().includes(query);
+      });
     }
 
     setFilteredInvitations(filtered);
@@ -135,7 +197,7 @@ export default function EventDetailScreen() {
   };
 
   const handleCancelEvent = async () => {
-    if (!cancellationReason.trim()) {
+    if (!cancellationReasonInput.trim()) {
       Alert.alert('Error', 'Please provide a cancellation reason');
       return;
     }
@@ -143,9 +205,10 @@ export default function EventDetailScreen() {
     try {
       await api.updateEvent(id, {
         status: 'cancelled',
-        cancellationReason: cancellationReason.trim(),
+        cancellationReason: cancellationReasonInput.trim(),
       });
       setShowCancelModal(false);
+      fetchEventDetails();
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to cancel event');
@@ -162,8 +225,20 @@ export default function EventDetailScreen() {
     );
   }
 
-  const coverPhoto = event.photo_urls?.[0] || null;
-  const isHost = event.host_id === user?.id;
+  // Handle both camelCase and snake_case field names
+  const coverPhoto = event.photoUrls?.[0] || event.photo_urls?.[0] || null;
+  const eventDate = event.eventDate || event.event_date;
+  const startTime = event.startTime || event.start_time;
+  const endTime = event.endTime || event.end_time;
+  const locationName = event.locationName || event.location_name;
+  const interestTags = event.interestTags || event.interest_tags || [];
+  const capacityLimit = event.capacityLimit || event.capacity_limit;
+  const isPublic = event.isPublic !== undefined ? event.isPublic : event.is_public;
+  const eventCancellationReason = event.cancellationReason || event.cancellation_reason;
+  const hostId = event.hostId || event.host_id;
+  const category = event.category || event.event_categories;
+  
+  const isHost = hostId === user?.id;
   const goingCount = invitations.filter((i) => i.status === 'going').length;
   const pendingCount = invitations.filter((i) => i.status === 'pending').length;
   const declinedCount = invitations.filter((i) => i.status === 'declined').length;
@@ -188,14 +263,14 @@ export default function EventDetailScreen() {
 
         <View style={styles.eventInfo}>
           <View style={styles.eventHeader}>
-            {event.event_categories && (
+            {category && (
               <View style={styles.categoryBadge}>
                 <Text style={styles.categoryBadgeText}>
-                  {event.event_categories.name}
+                  {category.name}
                 </Text>
               </View>
             )}
-            {!event.is_public && (
+            {!isPublic && (
               <View style={styles.privateBadge}>
                 <Text style={styles.privateBadgeText}>Invite Only</Text>
               </View>
@@ -213,34 +288,33 @@ export default function EventDetailScreen() {
           <View style={styles.detailsCard}>
             <View style={styles.detailRow}>
               <Calendar size={20} color="#3AFF6E" />
-              <Text style={styles.detailText}>{event.event_date}</Text>
+              <Text style={styles.detailText}>{formatDate(eventDate)}</Text>
             </View>
             <View style={styles.detailRow}>
               <Clock size={20} color="#3AFF6E" />
               <Text style={styles.detailText}>
-                {event.start_time}
-                {event.end_time && ` - ${event.end_time}`}
+                {formatTimeRange(startTime, endTime)}
               </Text>
             </View>
             <View style={styles.detailRow}>
               <MapPin size={20} color="#3AFF6E" />
-              <Text style={styles.detailText}>{event.location_name}</Text>
+              <Text style={styles.detailText}>{locationName}</Text>
             </View>
-            {event.capacity_limit && (
+            {capacityLimit && (
               <View style={styles.detailRow}>
                 <Users size={20} color="#3AFF6E" />
                 <Text style={styles.detailText}>
-                  Capacity: {event.capacity_limit}
+                  Capacity: {capacityLimit}
                 </Text>
               </View>
             )}
           </View>
 
-          {event.interest_tags && event.interest_tags.length > 0 && (
+          {interestTags && interestTags.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Interest Tags</Text>
               <View style={styles.interestsGrid}>
-                {event.interest_tags.map((tag, index) => (
+                {interestTags.map((tag, index) => (
                   <View key={index} style={styles.interestTag}>
                     <Heart size={12} color="#3AFF6E" fill="#3AFF6E" />
                     <Text style={styles.interestTagText}>{tag}</Text>
@@ -250,14 +324,14 @@ export default function EventDetailScreen() {
             </View>
           )}
 
-          {event.status === 'cancelled' && event.cancellation_reason && (
+          {event.status === 'cancelled' && eventCancellationReason && (
             <View style={styles.cancellationCard}>
               <View style={styles.cancellationHeader}>
                 <AlertCircle size={20} color="#FF3B30" />
                 <Text style={styles.cancellationTitle}>Event Cancelled</Text>
               </View>
               <Text style={styles.cancellationReason}>
-                {event.cancellation_reason}
+                {eventCancellationReason}
               </Text>
             </View>
           )}
@@ -361,7 +435,16 @@ export default function EventDetailScreen() {
               />
 
               {filteredInvitations.map((invitation) => {
-                const photoUrl = invitation.profiles.photo_urls?.[0] || null;
+                // Handle both invitee and profiles structures
+                const invitee = invitation.invitee || invitation.profiles;
+                if (!invitee) return null;
+                
+                const photoUrl = 'avatarUrl' in invitee 
+                  ? invitee.avatarUrl 
+                  : ('photo_urls' in invitee ? invitee.photo_urls?.[0] : null);
+                const fullName = 'fullName' in invitee 
+                  ? invitee.fullName 
+                  : ('full_name' in invitee ? invitee.full_name : 'Unknown');
                 const statusIcon =
                   invitation.status === 'going' ? (
                     <Check size={16} color="#34C759" />
@@ -386,7 +469,7 @@ export default function EventDetailScreen() {
 
                     <View style={styles.guestInfo}>
                       <Text style={styles.guestName}>
-                        {invitation.profiles.full_name}
+                        {fullName}
                       </Text>
                       <View style={styles.guestStatus}>
                         {statusIcon}
@@ -402,7 +485,7 @@ export default function EventDetailScreen() {
                         onPress={() =>
                           handleRemoveGuest(
                             invitation.id,
-                            invitation.profiles.full_name
+                            fullName
                           )
                         }
                         style={styles.removeGuestButton}
@@ -450,8 +533,8 @@ export default function EventDetailScreen() {
               <TextInput
                 style={styles.modalInput}
                 placeholder="Why are you cancelling?"
-                value={cancellationReason}
-                onChangeText={setCancellationReason}
+                value={cancellationReasonInput}
+                onChangeText={setCancellationReasonInput}
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"

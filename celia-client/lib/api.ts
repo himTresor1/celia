@@ -284,8 +284,8 @@ class ApiClient {
   }
 
   async respondToInvitation(invitationId: string, response: 'accepted' | 'rejected') {
-    // Backend expects 'status' field, and uses 'going' for accepted, 'rejected' for declined
-    const status = response === 'accepted' ? 'going' : 'rejected';
+    // Backend expects 'status' field, and uses 'going' for accepted, 'declined' for rejected
+    const status = response === 'accepted' ? 'going' : 'declined';
     const res = await this.client.patch(`/invitations/${invitationId}`, { status });
     return res.data;
   }
@@ -295,9 +295,9 @@ class ApiClient {
     return response.data;
   }
 
-  async addToSaved(userId: string, savedUserId: string, context?: string, notes?: string) {
+  async addToSaved(savedUserId: string, context?: string, notes?: string) {
+    // Backend extracts userId from JWT token, so we don't need to pass it
     const response = await this.client.post('/lists/saved', {
-      userId,
       savedUserId,
       context,
       notes,
@@ -305,7 +305,8 @@ class ApiClient {
     return response.data;
   }
 
-  async removeFromSaved(userId: string, savedUserId: string) {
+  async removeFromSaved(savedUserId: string) {
+    // Backend extracts userId from JWT token
     const response = await this.client.delete(`/lists/saved/${savedUserId}`);
     return response.data;
   }

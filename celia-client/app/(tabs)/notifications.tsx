@@ -24,6 +24,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { router, useFocusEffect } from 'expo-router';
 import { Fonts } from '@/constants/theme';
+import { formatDate, formatTime } from '@/lib/timeUtils';
 
 interface Invitation {
   id: string;
@@ -95,7 +96,7 @@ export default function NotificationsScreen() {
     const statusMap: Record<typeof tab, string> = {
       pending: 'pending',
       going: 'going', // Backend uses 'going' for accepted
-      declined: 'rejected',
+      declined: 'declined', // Backend uses 'declined' not 'rejected'
     };
     const filtered = invitations.filter((inv) => inv.status === statusMap[tab]);
     setFilteredInvitations(filtered);
@@ -200,11 +201,11 @@ export default function NotificationsScreen() {
           <View style={styles.eventDetails}>
             <View style={styles.detailRow}>
               <Calendar size={14} color="#666" />
-              <Text style={styles.detailText}>{item.event.eventDate}</Text>
+              <Text style={styles.detailText}>{formatDate(item.event.eventDate)}</Text>
             </View>
             <View style={styles.detailRow}>
               <Clock size={14} color="#666" />
-              <Text style={styles.detailText}>{item.event.startTime}</Text>
+              <Text style={styles.detailText}>{formatTime(item.event.startTime)}</Text>
             </View>
             <View style={styles.detailRow}>
               <MapPin size={14} color="#666" />
@@ -258,7 +259,7 @@ export default function NotificationsScreen() {
   const pendingCount = invitations.filter((i) => i.status === 'pending').length;
   const goingCount = invitations.filter((i) => i.status === 'going').length;
   const declinedCount = invitations.filter(
-    (i) => i.status === 'rejected'
+    (i) => i.status === 'declined'
   ).length;
 
   return (

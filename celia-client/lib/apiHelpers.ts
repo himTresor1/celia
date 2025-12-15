@@ -79,18 +79,18 @@ export const apiHelpers = {
     }
   },
 
-  async addToSaved(userId: string, savedUserId: string, context?: string, notes?: string) {
+  async addToSaved(savedUserId: string, context?: string, notes?: string) {
     try {
-      const data = await api.addToSaved(userId, savedUserId, context, notes);
+      const data = await api.addToSaved(savedUserId, context, notes);
       return { data, error: null };
     } catch (error: any) {
       return { data: null, error: error.response?.data?.message || error.message };
     }
   },
 
-  async removeFromSaved(userId: string, savedUserId: string) {
+  async removeFromSaved(savedUserId: string) {
     try {
-      await api.removeFromSaved(userId, savedUserId);
+      await api.removeFromSaved(savedUserId);
       return { error: null };
     } catch (error: any) {
       return { error: error.response?.data?.message || error.message };

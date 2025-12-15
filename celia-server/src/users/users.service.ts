@@ -122,9 +122,44 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    // Merge existing data with updates
+    const updatedData = {
+      ...dto,
+    };
+
+    // Automatically determine profile completion based on required fields
+    // Required fields: fullName, bio (min 50 chars), collegeName, interests (min 3), photoUrls (min 1), preferredLocations (min 1)
+    const finalFullName = dto.fullName ?? user.fullName;
+    const finalBio = dto.bio ?? user.bio;
+    const finalCollegeName = dto.collegeName ?? user.collegeName;
+    const finalInterests = dto.interests ?? user.interests;
+    const finalPhotoUrls = dto.photoUrls ?? (user.photoUrls as any[]);
+    const finalPreferredLocations = dto.preferredLocations ?? user.preferredLocations;
+
+    const isProfileComplete =
+      finalFullName &&
+      finalFullName.length > 0 &&
+      finalBio &&
+      finalBio.length >= 50 &&
+      finalCollegeName &&
+      finalCollegeName.length > 0 &&
+      Array.isArray(finalInterests) &&
+      finalInterests.length >= 3 &&
+      Array.isArray(finalPhotoUrls) &&
+      finalPhotoUrls.length >= 1 &&
+      Array.isArray(finalPreferredLocations) &&
+      finalPreferredLocations.length >= 1;
+
+    // Only update profileCompleted if explicitly set, or if we can determine it's complete
+    if (dto.profileCompleted !== undefined) {
+      updatedData.profileCompleted = dto.profileCompleted;
+    } else if (isProfileComplete) {
+      updatedData.profileCompleted = true;
+    }
+
     const updatedUser = await this.prisma.user.update({
       where: { id },
-      data: dto,
+      data: updatedData,
       select: {
         id: true,
         email: true,

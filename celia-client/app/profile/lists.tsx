@@ -4,9 +4,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  SafeAreaView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Heart, Users, Mail, ChevronRight } from 'lucide-react-native';
+import { Heart, Users, Mail, ChevronRight, ArrowLeft } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiHelpers } from '@/lib/apiHelpers';
@@ -51,11 +52,21 @@ export default function MyListsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>My Lists</Text>
-      <Text style={styles.subtitle}>
-        Manage your connections and saved users
-      </Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <ArrowLeft size={24} color="#1A1A1A" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Lists</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Text style={styles.subtitle}>
+          Manage your connections and saved users
+        </Text>
 
       <TouchableOpacity
         style={styles.listCard}
@@ -106,20 +117,44 @@ export default function MyListsScreen() {
         <ChevronRight size={24} color="#666" />
       </TouchableOpacity>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  headerSpacer: {
+    width: 40,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
-    padding: 20,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 8,
+  content: {
+    padding: 20,
   },
   subtitle: {
     fontSize: 16,
