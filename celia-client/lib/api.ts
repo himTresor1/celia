@@ -88,11 +88,11 @@ class ApiClient {
       const response = await this.client.post('/auth/register', data);
       console.log('[API] Register response:', response.data);
 
-      // Backend response is wrapped by TransformInterceptor: { message, data: { user, token } }
-      // Check both possible structures: direct token or nested in data
+      // Backend response is wrapped by TransformInterceptor: { message: "Account created successfully", data: { user, token } }
       const responseData = response.data;
-      let token = responseData.token || responseData.data?.token;
-      let user = responseData.user || responseData.data?.user;
+      // Extract from nested data structure
+      const token = responseData.data?.token;
+      const user = responseData.data?.user;
 
       if (token) {
         await this.setToken(token);
@@ -105,12 +105,12 @@ class ApiClient {
         };
       } else {
         console.error('[API] No token in response:', response.data);
+        return {
+          user,
+          token: undefined,
+          message: responseData.message,
+        };
       }
-      return {
-        user,
-        token,
-        message: responseData.message,
-      };
     } catch (error: any) {
       console.error('[API] Register error:', {
         message: error.message,
@@ -133,11 +133,11 @@ class ApiClient {
       const response = await this.client.post('/auth/login', { email, password });
       console.log('[API] Login response:', response.data);
 
-      // Backend response is wrapped by TransformInterceptor: { message, data: { user, token } }
-      // Check both possible structures: direct token or nested in data
+      // Backend response is wrapped by TransformInterceptor: { message: "Login successful", data: { user, token } }
       const responseData = response.data;
-      let token = responseData.token || responseData.data?.token;
-      let user = responseData.user || responseData.data?.user;
+      // Extract from nested data structure
+      const token = responseData.data?.token;
+      const user = responseData.data?.user;
 
       if (token) {
         await this.setToken(token);
@@ -188,7 +188,8 @@ class ApiClient {
 
   async getCurrentUser() {
     const response = await this.client.get('/auth/me');
-    return response.data;
+    // Backend response is wrapped: { message: "Profile retrieved successfully", data: { id, email, ... } }
+    return response.data.data || response.data;
   }
 
   async updateUser(userId: string, data: any) {
@@ -348,7 +349,8 @@ class ApiClient {
 
   async getUserStats(userId: string) {
     const response = await this.client.get(`/users/${userId}/stats`);
-    return response.data;
+    // Backend response is wrapped: { message: "...", data: { ... } }
+    return response.data.data || response.data;
   }
 
   async logEngagement(userId: string, actionType: string, points: number, metadata?: any) {

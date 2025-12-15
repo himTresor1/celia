@@ -27,6 +27,8 @@ import { DUMMY_USERS } from '@/lib/dummyUsers';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 80;
@@ -54,6 +56,7 @@ export default function BrowseResultsScreen() {
     eventId: string;
     filters: string;
   }>();
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'swipe' | 'list'>('swipe');
   const [savedUsers, setSavedUsers] = useState<Set<string>>(new Set());
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -124,12 +127,29 @@ export default function BrowseResultsScreen() {
     }
   };
 
-  const toggleSave = (userId: string) => {
+  const toggleSave = async (userId: string) => {
     const newSaved = new Set(savedUsers);
     if (newSaved.has(userId)) {
       newSaved.delete(userId);
+      // Remove from backend
+      try {
+        if (user?.id) {
+          await api.removeFromSaved(userId);
+        }
+      } catch (error) {
+        console.error('Failed to remove user from backend:', error);
+      }
     } else {
       newSaved.add(userId);
+      // Save to backend
+      try {
+        if (user?.id) {
+          await api.addToSaved(userId, 'event_browse');
+        }
+      } catch (error) {
+        console.error('Failed to save user to backend:', error);
+        // Still update local state even if API call fails
+      }
     }
     setSavedUsers(newSaved);
   };
