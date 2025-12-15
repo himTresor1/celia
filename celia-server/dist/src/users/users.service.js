@@ -118,9 +118,36 @@ let UsersService = class UsersService {
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
+        const updatedData = {
+            ...dto,
+        };
+        const finalFullName = dto.fullName ?? user.fullName;
+        const finalBio = dto.bio ?? user.bio;
+        const finalCollegeName = dto.collegeName ?? user.collegeName;
+        const finalInterests = dto.interests ?? user.interests;
+        const finalPhotoUrls = dto.photoUrls ?? user.photoUrls;
+        const finalPreferredLocations = dto.preferredLocations ?? user.preferredLocations;
+        const isProfileComplete = finalFullName &&
+            finalFullName.length > 0 &&
+            finalBio &&
+            finalBio.length >= 50 &&
+            finalCollegeName &&
+            finalCollegeName.length > 0 &&
+            Array.isArray(finalInterests) &&
+            finalInterests.length >= 3 &&
+            Array.isArray(finalPhotoUrls) &&
+            finalPhotoUrls.length >= 1 &&
+            Array.isArray(finalPreferredLocations) &&
+            finalPreferredLocations.length >= 1;
+        if (dto.profileCompleted !== undefined) {
+            updatedData.profileCompleted = dto.profileCompleted;
+        }
+        else if (isProfileComplete) {
+            updatedData.profileCompleted = true;
+        }
         const updatedUser = await this.prisma.user.update({
             where: { id },
-            data: dto,
+            data: updatedData,
             select: {
                 id: true,
                 email: true,

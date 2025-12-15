@@ -160,7 +160,7 @@ export default function ProfileScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <MapPin size={20} color="#1a1a1a" />
-              <Text style={styles.sectionTitle}>Preferred Locations</Text>
+              <Text style={styles.sectionTitle}>Preferred Cities</Text>
             </View>
             <View style={styles.locationsContainer}>
               {locations.map((location: string, index: number) => (

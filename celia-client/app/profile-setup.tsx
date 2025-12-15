@@ -19,10 +19,11 @@ interface Interest {
 }
 
 export default function ProfileSetupScreen() {
-  const { user, completeProfile } = useAuth();
+  const { user, profile, completeProfile } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [initializing, setInitializing] = useState(true);
 
   const [fullName, setFullName] = useState('');
   const [bio, setBio] = useState('');
@@ -99,6 +100,49 @@ export default function ProfileSetupScreen() {
   const handleRemovePhoto = (index: number) => {
     setPhotoUrls(photoUrls.filter((_, i) => i !== index));
   };
+
+  // Check if profile is already completed and load existing data
+  useEffect(() => {
+    const initializeProfile = async () => {
+      if (!user || !profile) {
+        setInitializing(false);
+        return;
+      }
+
+      // If profile is already completed, redirect to main app
+      if (profile.is_profile_completed) {
+        router.replace('/(tabs)');
+        return;
+      }
+
+      // Load existing profile data if available
+      if (profile.full_name) {
+        setFullName(profile.full_name);
+      }
+      if (profile.bio) {
+        setBio(profile.bio);
+      }
+      if (profile.photo_urls && Array.isArray(profile.photo_urls) && profile.photo_urls.length > 0) {
+        setPhotoUrls(profile.photo_urls);
+      }
+      if (profile.interests && Array.isArray(profile.interests) && profile.interests.length > 0) {
+        setSelectedInterests(profile.interests);
+      }
+      if (profile.college_name) {
+        const existingCollege = colleges.find(c => c.name === profile.college_name);
+        if (existingCollege) {
+          setSelectedCollege(existingCollege);
+        }
+      }
+      if (profile.preferred_locations && Array.isArray(profile.preferred_locations) && profile.preferred_locations.length > 0) {
+        setPreferredLocations(profile.preferred_locations);
+      }
+
+      setInitializing(false);
+    };
+
+    initializeProfile();
+  }, [user, profile]);
 
   const toggleInterest = (interestName: string) => {
     if (selectedInterests.includes(interestName)) {
@@ -205,6 +249,18 @@ export default function ProfileSetupScreen() {
       ))}
     </View>
   );
+
+  // Show loading while checking profile status
+  if (initializing) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#3AFF6E" />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -413,20 +469,23 @@ export default function ProfileSetupScreen() {
 
         {step === 4 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Preferred Locations</Text>
+            <Text style={styles.stepTitle}>Preferred Cities</Text>
             <Text style={styles.stepSubtitle}>
-              Add up to 3 locations where you'd like to meet (Optional)
+              Select up to 3 cities where you'd like to attend events
+            </Text>
+            <Text style={styles.stepSubtitle}>
+              Select up to 3 cities where you'd like to attend events (Optional)
             </Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                Add Location (up to 3)
+                Add City (up to 3)
               </Text>
               <View style={styles.locationInputContainer}>
                 <MapPin size={20} color="#666" />
                 <TextInput
                   style={styles.locationInput}
-                  placeholder="e.g., Campus Library, Student Union"
+                  placeholder="e.g., New York, Los Angeles, Boston"
                   value={locationInput}
                   onChangeText={setLocationInput}
                 />
@@ -492,6 +551,16 @@ export default function ProfileSetupScreen() {
 }
 
 const styles = StyleSheet.create({
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',

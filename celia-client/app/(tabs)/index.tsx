@@ -35,6 +35,8 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, BorderRadius } from '@/constants/theme';
+import { apiHelpers } from '@/lib/apiHelpers';
+import { api } from '@/lib/api';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 80; // Reduced for easier swiping
@@ -80,13 +82,25 @@ export default function HomeScreen() {
 
   const loadSavedAndPassedUsers = async () => {
     try {
-      const saved = await AsyncStorage.getItem(SAVED_USERS_KEY);
+      // Load passed users from AsyncStorage (frontend only)
       const passed = await AsyncStorage.getItem(PASSED_USERS_KEY);
-      if (saved) {
-        setSavedUsers(new Set(JSON.parse(saved)));
-      }
       if (passed) {
         setPassedUsers(new Set(JSON.parse(passed)));
+      }
+      
+      // Load saved users from API to sync with backend
+      if (user?.id) {
+        const { data } = await apiHelpers.getSavedUsers(user.id);
+        if (data) {
+          const items = Array.isArray(data) ? data : data.items || [];
+          const savedIds = new Set(
+            items.map((item: any) => {
+              const savedUser = item.user || item.saved_user || item;
+              return savedUser.id || item.savedUserId || savedUser.saved_user_id;
+            })
+          );
+          setSavedUsers(savedIds);
+        }
       }
     } catch (error) {
       console.error('Error loading saved/passed users:', error);
@@ -108,18 +122,27 @@ export default function HomeScreen() {
   };
 
   const saveUser = async (userId: string) => {
-    const newSaved = new Set(savedUsers);
-    if (newSaved.has(userId)) {
-      newSaved.delete(userId);
-    } else {
-      newSaved.add(userId);
-    }
-    setSavedUsers(newSaved);
+    const isCurrentlySaved = savedUsers.has(userId);
+    
     try {
-      await AsyncStorage.setItem(
-        SAVED_USERS_KEY,
-        JSON.stringify(Array.from(newSaved))
-      );
+      if (isCurrentlySaved) {
+        // Remove from saved
+        await apiHelpers.removeFromSaved(userId);
+        const newSaved = new Set(savedUsers);
+        newSaved.delete(userId);
+        setSavedUsers(newSaved);
+      } else {
+        // Add to saved via API
+        const { error } = await apiHelpers.addToSaved(userId, 'just_looking');
+        if (!error) {
+          const newSaved = new Set(savedUsers);
+          newSaved.add(userId);
+          setSavedUsers(newSaved);
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } else {
+          console.error('Error saving user:', error);
+        }
+      }
     } catch (error) {
       console.error('Error saving user:', error);
     }

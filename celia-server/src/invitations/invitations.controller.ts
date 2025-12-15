@@ -17,6 +17,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiBody,
 } from '@nestjs/swagger';
 import { InvitationsService } from './invitations.service';
 import {
@@ -60,6 +61,27 @@ export class InvitationsController {
 
   @Post('bulk')
   @ApiOperation({ summary: 'Send bulk invitations' })
+  @ApiBody({
+    description: 'Bulk invitation payload',
+    type: BulkInviteDto,
+    examples: {
+      default: {
+        summary: 'Invite multiple users to an event',
+        description:
+          'Host invites three users to an event with a shared personal message',
+        value: {
+          eventId: 'event_123e4567-e89b-12d3-a456-426614174000',
+          inviteeIds: [
+            'user_11111111-1111-1111-1111-111111111111',
+            'user_22222222-2222-2222-2222-222222222222',
+            'user_33333333-3333-3333-3333-333333333333',
+          ],
+          personalMessage:
+            "Hey! I'd love for you to join us for this event tonight 🎉",
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: 201,
     description: 'Invitations sent successfully',

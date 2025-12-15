@@ -93,6 +93,39 @@ let EventsService = class EventsService {
                     },
                 },
                 category: true,
+                attendees: {
+                    select: {
+                        id: true,
+                        userId: true,
+                        joinedAt: true,
+                        user: {
+                            select: {
+                                id: true,
+                                fullName: true,
+                                avatarUrl: true,
+                                collegeName: true,
+                                major: true,
+                            },
+                        },
+                    },
+                },
+                invitations: {
+                    select: {
+                        id: true,
+                        status: true,
+                        personalMessage: true,
+                        inviteeId: true,
+                        invitee: {
+                            select: {
+                                id: true,
+                                fullName: true,
+                                avatarUrl: true,
+                                collegeName: true,
+                                major: true,
+                            },
+                        },
+                    },
+                },
                 _count: {
                     select: {
                         attendees: true,
@@ -181,13 +214,20 @@ let EventsService = class EventsService {
                     },
                 },
                 invitations: {
-                    where: {
-                        inviteeId: userId,
-                    },
                     select: {
                         id: true,
                         status: true,
+                        inviteeId: true,
                         personalMessage: true,
+                        invitee: {
+                            select: {
+                                id: true,
+                                fullName: true,
+                                avatarUrl: true,
+                                collegeName: true,
+                                major: true,
+                            },
+                        },
                     },
                 },
                 _count: {
@@ -201,9 +241,9 @@ let EventsService = class EventsService {
         if (!event) {
             throw new common_1.NotFoundException('Event not found');
         }
-        const hasAccess = event.isPublic ||
-            event.hostId === userId ||
-            event.invitations.length > 0;
+        const isHost = event.hostId === userId;
+        const isInvited = event.invitations.some((invitation) => invitation.inviteeId === userId);
+        const hasAccess = event.isPublic || isHost || isInvited;
         if (!hasAccess) {
             throw new common_1.ForbiddenException('You do not have access to this event');
         }

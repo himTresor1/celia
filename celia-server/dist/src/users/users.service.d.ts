@@ -109,8 +109,8 @@ export declare class UsersService {
         createdAt: Date;
         updatedAt: Date;
         name: string;
-        description: string | null;
         hostId: string;
+        description: string | null;
         categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
@@ -146,8 +146,8 @@ export declare class UsersService {
         createdAt: Date;
         updatedAt: Date;
         name: string;
-        description: string | null;
         hostId: string;
+        description: string | null;
         categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;

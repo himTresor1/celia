@@ -98,6 +98,25 @@ __decorate([
 __decorate([
     (0, common_1.Post)('bulk'),
     (0, swagger_1.ApiOperation)({ summary: 'Send bulk invitations' }),
+    (0, swagger_1.ApiBody)({
+        description: 'Bulk invitation payload',
+        type: create_invitation_dto_1.BulkInviteDto,
+        examples: {
+            default: {
+                summary: 'Invite multiple users to an event',
+                description: 'Host invites three users to an event with a shared personal message',
+                value: {
+                    eventId: 'event_123e4567-e89b-12d3-a456-426614174000',
+                    inviteeIds: [
+                        'user_11111111-1111-1111-1111-111111111111',
+                        'user_22222222-2222-2222-2222-222222222222',
+                        'user_33333333-3333-3333-3333-333333333333',
+                    ],
+                    personalMessage: "Hey! I'd love for you to join us for this event tonight 🎉",
+                },
+            },
+        },
+    }),
     (0, swagger_1.ApiResponse)({
         status: 201,
         description: 'Invitations sent successfully',

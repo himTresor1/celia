@@ -12,6 +12,7 @@ import { Calendar, MapPin, Users, Clock, FileText } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
+import { formatDate, formatTimeRange } from '@/lib/timeUtils';
 
 interface Event {
   id: string;
@@ -111,14 +112,6 @@ export default function EventsScreen() {
     setRefreshing(false);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
 
   const renderEvent = ({ item }: { item: any }) => {
     const coverPhoto = item.photoUrls?.[0] || null;
@@ -178,8 +171,7 @@ export default function EventsScreen() {
             <View style={styles.detailRow}>
               <Clock size={16} color="#666" />
               <Text style={styles.detailText}>
-                {item.startTime}
-                {item.endTime && ` - ${item.endTime}`}
+                {formatTimeRange(item.startTime, item.endTime)}
               </Text>
             </View>
 
