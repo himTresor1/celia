@@ -88,14 +88,29 @@ class ApiClient {
       const response = await this.client.post('/auth/register', data);
       console.log('[API] Register response:', response.data);
 
-      // Backend returns 'token', not 'access_token'
-      if (response.data.token) {
-        await this.setToken(response.data.token);
+      // Backend response is wrapped by TransformInterceptor: { message: "Account created successfully", data: { user, token } }
+      const responseData = response.data;
+      // Extract from nested data structure
+      const token = responseData.data?.token;
+      const user = responseData.data?.user;
+
+      if (token) {
+        await this.setToken(token);
         console.log('[API] Token saved successfully');
+        // Return consistent structure
+        return {
+          user,
+          token,
+          message: responseData.message,
+        };
       } else {
         console.error('[API] No token in response:', response.data);
+        return {
+          user,
+          token: undefined,
+          message: responseData.message,
+        };
       }
-      return response.data;
     } catch (error: any) {
       console.error('[API] Register error:', {
         message: error.message,
@@ -118,15 +133,25 @@ class ApiClient {
       const response = await this.client.post('/auth/login', { email, password });
       console.log('[API] Login response:', response.data);
 
-      // Backend returns 'token', not 'access_token'
-      if (response.data.token) {
-        await this.setToken(response.data.token);
+      // Backend response is wrapped by TransformInterceptor: { message: "Login successful", data: { user, token } }
+      const responseData = response.data;
+      // Extract from nested data structure
+      const token = responseData.data?.token;
+      const user = responseData.data?.user;
+
+      if (token) {
+        await this.setToken(token);
         console.log('[API] Token saved successfully');
+        // Return consistent structure
+        return {
+          user,
+          token,
+          message: responseData.message,
+        };
       } else {
         console.error('[API] No token in response:', response.data);
         throw new Error('No token received from server');
       }
-      return response.data;
     } catch (error: any) {
       // Enhanced error logging
       const errorDetails = {
@@ -163,7 +188,8 @@ class ApiClient {
 
   async getCurrentUser() {
     const response = await this.client.get('/auth/me');
-    return response.data;
+    // Backend response is wrapped: { message: "Profile retrieved successfully", data: { id, email, ... } }
+    return response.data.data || response.data;
   }
 
   async updateUser(userId: string, data: any) {
@@ -323,7 +349,8 @@ class ApiClient {
 
   async getUserStats(userId: string) {
     const response = await this.client.get(`/users/${userId}/stats`);
-    return response.data;
+    // Backend response is wrapped: { message: "...", data: { ... } }
+    return response.data.data || response.data;
   }
 
   async logEngagement(userId: string, actionType: string, points: number, metadata?: any) {

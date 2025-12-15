@@ -17,10 +17,11 @@ import { ArrowLeft, Heart, X, Save, Info } from 'lucide-react-native';
 import { Colors, Fonts, BorderRadius } from '@/constants/theme';
 import { DUMMY_USERS } from '@/lib/dummyUsers';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SWIPE_THRESHOLD = 80;
+const SWIPE_THRESHOLD = 100; // Increased threshold for more reliable swipes
 
 interface UserProfile {
   id: string;
@@ -102,9 +103,17 @@ export default function JustLookingScreen() {
         position.flattenOffset();
         if (isAnimating || currentIndex >= users.length) return;
 
-        if (Math.abs(gesture.dx) > SWIPE_THRESHOLD) {
-          handleSwipeComplete();
+        const swipeRight = gesture.dx > SWIPE_THRESHOLD;
+        const swipeLeft = gesture.dx < -SWIPE_THRESHOLD;
+
+        if (swipeRight) {
+          // Swipe right = save
+          handleSwipeSave();
+        } else if (swipeLeft) {
+          // Swipe left = pass
+          handleSwipePass();
         } else {
+          // Not enough movement, spring back
           Animated.spring(position, {
             toValue: { x: 0, y: 0 },
             useNativeDriver: false,
@@ -118,7 +127,12 @@ export default function JustLookingScreen() {
     })
   ).current;
 
-  const handleSwipeComplete = () => {
+  const handleSwipeSave = async () => {
+    if (isAnimating || currentIndex >= users.length) return;
+    
+    const currentUser = users[currentIndex];
+    await handleSave(currentUser.id);
+    
     setIsAnimating(true);
     Animated.parallel([
       Animated.timing(position, {
@@ -127,7 +141,30 @@ export default function JustLookingScreen() {
         useNativeDriver: false,
       }),
       Animated.timing(rotation, {
-        toValue: 0,
+        toValue: 15,
+        duration: 300,
+        useNativeDriver: false,
+      }),
+    ]).start(() => {
+      position.setValue({ x: 0, y: 0 });
+      rotation.setValue(0);
+      setCurrentIndex((prev) => prev + 1);
+      setIsAnimating(false);
+    });
+  };
+
+  const handleSwipePass = () => {
+    if (isAnimating || currentIndex >= users.length) return;
+    
+    setIsAnimating(true);
+    Animated.parallel([
+      Animated.timing(position, {
+        toValue: { x: -SCREEN_WIDTH - 100, y: 0 },
+        duration: 300,
+        useNativeDriver: false,
+      }),
+      Animated.timing(rotation, {
+        toValue: -15,
         duration: 300,
         useNativeDriver: false,
       }),
@@ -145,6 +182,15 @@ export default function JustLookingScreen() {
       newSaved.delete(userId);
     } else {
       newSaved.add(userId);
+      // Call API to save user
+      try {
+        if (user?.id) {
+          await api.addToSaved(userId, 'just_looking');
+        }
+      } catch (error) {
+        console.error('Failed to save user to backend:', error);
+        // Still update local state even if API call fails
+      }
     }
     setSavedUsers(newSaved);
     await saveUsers(newSaved);
@@ -293,7 +339,7 @@ export default function JustLookingScreen() {
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.passButton}
-          onPress={handleSwipeComplete}
+          onPress={handleSwipePass}
           disabled={isAnimating}
         >
           <X size={32} color="#FF3B30" strokeWidth={3} />

@@ -42,6 +42,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found');
     }
 
+    // Ensure id is always present (should be, but adding safety check)
+    if (!user.id) {
+      console.error('[JwtStrategy] User object missing id! Payload:', payload);
+      // Fallback to payload.sub if id is somehow missing
+      return { ...user, id: payload.sub };
+    }
+
     return user;
   }
 }

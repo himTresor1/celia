@@ -62,12 +62,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedUser = await AsyncStorage.getItem('user');
 
       if (token && storedUser) {
-        setSession({ access_token: token });
-        setUser(JSON.parse(storedUser));
-        await refreshProfile();
+        const parsedUser = JSON.parse(storedUser);
+        // Ensure stored user has required fields
+        if (parsedUser && parsedUser.id) {
+          setSession({ access_token: token });
+          setUser(parsedUser);
+          console.log('[AuthContext] Loaded stored user, ID:', parsedUser.id);
+          await refreshProfile();
+        } else {
+          console.warn('[AuthContext] Stored user missing ID, clearing storage');
+          await AsyncStorage.removeItem('authToken');
+          await AsyncStorage.removeItem('user');
+        }
       }
     } catch (error) {
-      console.error('Error loading stored auth:', error);
+      console.error('[AuthContext] Error loading stored auth:', error);
     } finally {
       setLoading(false);
     }
@@ -76,6 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = async () => {
     try {
       const userData = await api.getCurrentUser();
+      
+      // Ensure userData has required fields
+      if (!userData || !userData.id) {
+        console.error('[AuthContext] Invalid user data from getCurrentUser:', userData);
+        return;
+      }
+      
       const profileData: Profile = {
         id: userData.id,
         email: userData.email,
@@ -94,8 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(profileData);
       setUser(userData);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
+      console.log('[AuthContext] Profile refreshed, user ID:', userData.id);
     } catch (error) {
-      console.error('Error refreshing profile:', error);
+      console.error('[AuthContext] Error refreshing profile:', error);
     }
   };
 
@@ -120,9 +137,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession({ access_token: token });
       }
 
-      setUser(response.user);
+      // Ensure user object has required fields
+      if (!response.user || !response.user.id) {
+        console.error('[AuthContext] Invalid user object from login:', response.user);
+        throw new Error('Invalid user data received from server');
+      }
 
+      setUser(response.user);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
+      console.log('[AuthContext] User set after login, ID:', response.user.id);
 
       await refreshProfile();
 
@@ -130,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('[AuthContext] Login error:', error);
       return {
-        error: new Error(error.response?.data?.message || 'Login failed'),
+        error: new Error(error.response?.data?.message || error.message || 'Login failed'),
       };
     }
   };
@@ -145,9 +168,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession({ access_token: token });
       }
 
-      setUser(response.user);
+      // Ensure user object has required fields
+      if (!response.user || !response.user.id) {
+        console.error('[AuthContext] Invalid user object from register:', response.user);
+        throw new Error('Invalid user data received from server');
+      }
 
+      setUser(response.user);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
+      console.log('[AuthContext] User set after registration, ID:', response.user.id);
 
       await refreshProfile();
 
@@ -156,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('[AuthContext] Registration error:', error);
       return {
         error: new Error(
-          error.response?.data?.message || 'Registration failed'
+          error.response?.data?.message || error.message || 'Registration failed'
         ),
       };
     }

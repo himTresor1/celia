@@ -45,6 +45,9 @@ export default function LoginScreen() {
         setError(
           signInError.message || 'Login failed. Please check your credentials.'
         );
+      } else {
+        // Redirect to dashboard/home after successful login
+        router.replace('/(tabs)');
       }
     } catch (err: any) {
       console.error('[LoginScreen] Unexpected error:', err);

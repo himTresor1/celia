@@ -47,14 +47,9 @@ function RootLayoutNav() {
 
     // Handle authenticated users
     if (session && profile) {
-      // Only redirect to profile setup if explicitly navigating to tabs
-      // Don't force redirect on initial load - let user access login if they want
-      if (profile.is_profile_completed && !inTabs && !inGetStarted && !inAuthGroup && !inProfileSetup) {
+      // Always redirect authenticated users to dashboard/home, regardless of profile completion
+      if (!inTabs && !inGetStarted && !inAuthGroup && !inProfileSetup && !inEvent && !inBrowse && !inSaved && !inProfile) {
         router.replace('/(tabs)');
-      }
-      // If user tries to access tabs with incomplete profile, redirect to setup
-      if (!profile.is_profile_completed && inTabs) {
-        router.replace('/profile-setup');
       }
     } else if (!session && !inAuthGroup && !inSplash && !inOnboarding && !inGetStarted) {
       // Unauthenticated users should go to login
