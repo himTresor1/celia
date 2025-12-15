@@ -88,14 +88,29 @@ class ApiClient {
       const response = await this.client.post('/auth/register', data);
       console.log('[API] Register response:', response.data);
 
-      // Backend returns 'token', not 'access_token'
-      if (response.data.token) {
-        await this.setToken(response.data.token);
+      // Backend response is wrapped by TransformInterceptor: { message, data: { user, token } }
+      // Check both possible structures: direct token or nested in data
+      const responseData = response.data;
+      let token = responseData.token || responseData.data?.token;
+      let user = responseData.user || responseData.data?.user;
+
+      if (token) {
+        await this.setToken(token);
         console.log('[API] Token saved successfully');
+        // Return consistent structure
+        return {
+          user,
+          token,
+          message: responseData.message,
+        };
       } else {
         console.error('[API] No token in response:', response.data);
       }
-      return response.data;
+      return {
+        user,
+        token,
+        message: responseData.message,
+      };
     } catch (error: any) {
       console.error('[API] Register error:', {
         message: error.message,
@@ -118,15 +133,25 @@ class ApiClient {
       const response = await this.client.post('/auth/login', { email, password });
       console.log('[API] Login response:', response.data);
 
-      // Backend returns 'token', not 'access_token'
-      if (response.data.token) {
-        await this.setToken(response.data.token);
+      // Backend response is wrapped by TransformInterceptor: { message, data: { user, token } }
+      // Check both possible structures: direct token or nested in data
+      const responseData = response.data;
+      let token = responseData.token || responseData.data?.token;
+      let user = responseData.user || responseData.data?.user;
+
+      if (token) {
+        await this.setToken(token);
         console.log('[API] Token saved successfully');
+        // Return consistent structure
+        return {
+          user,
+          token,
+          message: responseData.message,
+        };
       } else {
         console.error('[API] No token in response:', response.data);
         throw new Error('No token received from server');
       }
-      return response.data;
     } catch (error: any) {
       // Enhanced error logging
       const errorDetails = {

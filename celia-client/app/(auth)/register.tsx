@@ -53,12 +53,13 @@ export default function RegisterScreen() {
     if (signUpError) {
       setError(signUpError.message);
     } else {
-      router.replace('/profile-setup');
+      // Redirect to dashboard/home after successful registration
+      router.replace('/(tabs)');
     }
   };
 
   const handleVerifyCode = async () => {
-    router.replace('/profile-setup');
+    router.replace('/(tabs)');
   };
 
   const handleResendCode = async () => {
@@ -208,7 +209,7 @@ export default function RegisterScreen() {
 
               <TouchableOpacity
                 style={styles.skipButton}
-                onPress={() => router.replace('/profile-setup')}
+                onPress={() => router.replace('/(tabs)')}
                 disabled={loading}
               >
                 <Text style={styles.skipButtonText}>Skip Verification (Testing)</Text>
