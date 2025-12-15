@@ -3,6 +3,7 @@ import { CreateInvitationDto, BulkInviteDto } from './dto/create-invitation.dto'
 import { UpdateInvitationDto } from './dto/update-invitation.dto';
 export declare class InvitationsController {
     private invitationsService;
+    private readonly logger;
     constructor(invitationsService: InvitationsService);
     create(user: any, dto: CreateInvitationDto): Promise<{
         event: {

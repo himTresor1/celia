@@ -5,9 +5,13 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const swagger_1 = require("@nestjs/swagger");
 const app_module_1 = require("./app.module");
+const transform_interceptor_1 = require("./common/interceptors/transform.interceptor");
+const http_exception_filter_1 = require("./common/filters/http-exception.filter");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     const configService = app.get(config_1.ConfigService);
+    app.useGlobalFilters(new http_exception_filter_1.AllExceptionsFilter());
+    app.useGlobalInterceptors(new transform_interceptor_1.TransformInterceptor());
     app.enableCors({
         origin: configService
             .get('CORS_ORIGIN', '*')

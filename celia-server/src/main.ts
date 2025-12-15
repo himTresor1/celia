@@ -3,11 +3,19 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
+
+  // Register global exception filter for standardized error responses
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // Register global interceptor for standardized success responses
+  app.useGlobalInterceptors(new TransformInterceptor());
 
   app.enableCors({
     origin: configService

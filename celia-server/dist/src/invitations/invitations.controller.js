@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var InvitationsController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InvitationsController = void 0;
 const common_1 = require("@nestjs/common");
@@ -20,15 +21,40 @@ const create_invitation_dto_1 = require("./dto/create-invitation.dto");
 const update_invitation_dto_1 = require("./dto/update-invitation.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const current_user_decorator_1 = require("../common/decorators/current-user.decorator");
-let InvitationsController = class InvitationsController {
+let InvitationsController = InvitationsController_1 = class InvitationsController {
     constructor(invitationsService) {
         this.invitationsService = invitationsService;
+        this.logger = new common_1.Logger(InvitationsController_1.name);
     }
     create(user, dto) {
         return this.invitationsService.create(user.id, dto);
     }
-    bulkCreate(user, dto) {
-        return this.invitationsService.bulkCreate(user.id, dto);
+    async bulkCreate(user, dto) {
+        this.logger.log(`[BULK_INVITE_CONTROLLER] Received bulk invite request - UserId: ${user?.id}, EventId: ${dto?.eventId}, InviteeCount: ${dto?.inviteeIds?.length || 0}`);
+        try {
+            if (!dto.eventId) {
+                this.logger.error(`[BULK_INVITE_CONTROLLER] Missing eventId in request - UserId: ${user?.id}`);
+                throw new common_1.BadRequestException('Event ID is required');
+            }
+            if (!dto.inviteeIds || dto.inviteeIds.length === 0) {
+                this.logger.error(`[BULK_INVITE_CONTROLLER] Missing or empty inviteeIds in request - UserId: ${user?.id}, EventId: ${dto.eventId}`);
+                throw new common_1.BadRequestException('At least one invitee ID is required');
+            }
+            if (!user?.id) {
+                this.logger.error(`[BULK_INVITE_CONTROLLER] Missing user ID in request context`);
+                throw new common_1.BadRequestException('User ID is required');
+            }
+            this.logger.debug(`[BULK_INVITE_CONTROLLER] Request validated - Proceeding to service layer`);
+            const result = await this.invitationsService.bulkCreate(user.id, dto);
+            this.logger.log(`[BULK_INVITE_CONTROLLER] Bulk invite completed successfully - UserId: ${user.id}, EventId: ${dto.eventId}, Created: ${result.invitations?.length || 0}, Skipped: ${result.skipped || 0}`);
+            return result;
+        }
+        catch (error) {
+            this.logger.error(`[BULK_INVITE_CONTROLLER] Error in bulk invite endpoint - UserId: ${user?.id}, EventId: ${dto?.eventId}, ErrorType: ${error.constructor?.name || 'Unknown'}, ErrorMessage: ${error.message || 'Unknown error'}`);
+            this.logger.error(`[BULK_INVITE_CONTROLLER] Error stack: ${error.stack || 'No stack trace'}`);
+            this.logger.error(`[BULK_INVITE_CONTROLLER] Request body: ${JSON.stringify(dto, null, 2)}`);
+            throw error;
+        }
     }
     findMyInvitations(user, status) {
         return this.invitationsService.findMyInvitations(user.id, status);
@@ -88,7 +114,7 @@ __decorate([
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, create_invitation_dto_1.BulkInviteDto]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], InvitationsController.prototype, "bulkCreate", null);
 __decorate([
     (0, common_1.Get)('my'),
@@ -172,7 +198,7 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], InvitationsController.prototype, "delete", null);
-exports.InvitationsController = InvitationsController = __decorate([
+exports.InvitationsController = InvitationsController = InvitationsController_1 = __decorate([
     (0, swagger_1.ApiTags)('Invitations'),
     (0, common_1.Controller)('invitations'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
