@@ -211,7 +211,10 @@ class ApiClient {
     const params: any = {};
     if (status) params.status = status;
     const response = await this.client.get('/events/my', { params });
-    return response.data;
+    // Backend response is wrapped: { message: "Events retrieved successfully", data: [...] }
+    const data = response.data.data || response.data;
+    // Ensure we return an array
+    return Array.isArray(data) ? data : [];
   }
 
   async getUserHostedEvents(hostId: string, limit?: number) {
@@ -280,12 +283,18 @@ class ApiClient {
   async getInvitations(userId: string) {
     // Use /invitations/my endpoint which gets invitations for the current authenticated user
     const response = await this.client.get('/invitations/my');
-    return response.data;
+    // Backend response is wrapped: { message: "Invitations retrieved successfully", data: [...] }
+    const data = response.data.data || response.data;
+    // Ensure we return an array
+    return Array.isArray(data) ? data : [];
   }
 
   async getEventInvitations(eventId: string) {
     const response = await this.client.get(`/invitations/event/${eventId}`);
-    return response.data;
+    // Backend response is wrapped: { message: "...", data: [...] }
+    const data = response.data.data || response.data;
+    // Ensure we return an array
+    return Array.isArray(data) ? data : [];
   }
 
   async deleteInvitation(invitationId: string) {
@@ -318,7 +327,8 @@ class ApiClient {
 
   async getSavedUsers(userId: string) {
     const response = await this.client.get('/lists/saved');
-    return response.data;
+    // Backend response is wrapped: { message: "Data retrieved successfully", data: { items, total, ... } }
+    return response.data.data || response.data;
   }
 
   async addToSaved(savedUserId: string, context?: string, notes?: string) {
@@ -339,7 +349,8 @@ class ApiClient {
 
   async getInvitees(userId: string) {
     const response = await this.client.get('/lists/invitees');
-    return response.data;
+    // Backend response is wrapped: { message: "...", data: { items, total, ... } }
+    return response.data.data || response.data;
   }
 
   async getRecommendations(filters?: any) {
@@ -375,7 +386,10 @@ class ApiClient {
 
   async getEventCategories() {
     const response = await this.client.get('/categories/events');
-    return response.data;
+    // Backend response is wrapped: { message: "...", data: [...] }
+    const data = response.data.data || response.data;
+    // Ensure we return an array
+    return Array.isArray(data) ? data : [];
   }
 }
 

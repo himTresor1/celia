@@ -7,6 +7,7 @@ export declare class UsersService {
     constructor(prisma: PrismaService, scoring: ScoringService);
     findAll(search?: string, interests?: string[], college?: string): Promise<{
         id: string;
+        createdAt: Date;
         email: string;
         fullName: string;
         age: number;
@@ -22,12 +23,12 @@ export declare class UsersService {
         preferredLocations: string[];
         profileCompleted: boolean;
         attractivenessScore: number;
-        createdAt: Date;
     }[]>;
     findOne(id: string): Promise<{
         friendsCount: number;
         rating: number;
         id: string;
+        createdAt: Date;
         email: string;
         fullName: string;
         dateOfBirth: Date;
@@ -47,7 +48,6 @@ export declare class UsersService {
         attractivenessScore: number;
         engagementPoints: number;
         socialStreakDays: number;
-        createdAt: Date;
         updatedAt: Date;
         _count: {
             hostedEvents: number;
@@ -59,6 +59,7 @@ export declare class UsersService {
     }>;
     update(id: string, currentUserId: string, dto: UpdateUserDto): Promise<{
         id: string;
+        createdAt: Date;
         email: string;
         fullName: string;
         dateOfBirth: Date;
@@ -78,7 +79,6 @@ export declare class UsersService {
         attractivenessScore: number;
         engagementPoints: number;
         socialStreakDays: number;
-        createdAt: Date;
         updatedAt: Date;
     }>;
     getUserStats(userId: string): Promise<{
@@ -99,16 +99,16 @@ export declare class UsersService {
         };
         category: {
             id: string;
-            createdAt: Date;
             name: string;
             icon: string | null;
+            createdAt: Date;
         };
     } & {
         id: string;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
-        createdAt: Date;
-        updatedAt: Date;
         name: string;
+        createdAt: Date;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        updatedAt: Date;
         hostId: string;
         description: string | null;
         categoryId: string | null;
@@ -136,16 +136,16 @@ export declare class UsersService {
         };
         category: {
             id: string;
-            createdAt: Date;
             name: string;
             icon: string | null;
+            createdAt: Date;
         };
     } & {
         id: string;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
-        createdAt: Date;
-        updatedAt: Date;
         name: string;
+        createdAt: Date;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        updatedAt: Date;
         hostId: string;
         description: string | null;
         categoryId: string | null;

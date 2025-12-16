@@ -14,17 +14,17 @@ export declare class InvitationsController {
             };
             category: {
                 id: string;
-                createdAt: Date;
                 name: string;
                 icon: string | null;
+                createdAt: Date;
             };
         } & {
             id: string;
-            status: string;
+            name: string;
             createdAt: Date;
+            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             updatedAt: Date;
             hostId: string;
-            name: string;
             description: string | null;
             categoryId: string | null;
             locationName: string | null;
@@ -33,10 +33,10 @@ export declare class InvitationsController {
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
-            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             interestTags: string[];
             capacityLimit: number | null;
             isPublic: boolean;
+            status: string;
             cancellationReason: string | null;
             externalLink: string | null;
             externalLinkType: string | null;
@@ -53,13 +53,13 @@ export declare class InvitationsController {
         };
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         status: string;
+        eventId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
-        eventId: string;
         inviterId: string;
         inviteeId: string;
     }>;
@@ -73,13 +73,13 @@ export declare class InvitationsController {
             };
         } & {
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
             status: string;
+            eventId: string;
             personalMessage: string | null;
             declineReason: string | null;
             respondedAt: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
-            eventId: string;
             inviterId: string;
             inviteeId: string;
         })[];
@@ -87,6 +87,9 @@ export declare class InvitationsController {
     }>;
     findMyInvitations(user: any, status?: string): Promise<({
         event: {
+            _count: {
+                attendees: number;
+            };
             host: {
                 id: string;
                 fullName: string;
@@ -95,20 +98,17 @@ export declare class InvitationsController {
             };
             category: {
                 id: string;
-                createdAt: Date;
                 name: string;
                 icon: string | null;
-            };
-            _count: {
-                attendees: number;
+                createdAt: Date;
             };
         } & {
             id: string;
-            status: string;
+            name: string;
             createdAt: Date;
+            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             updatedAt: Date;
             hostId: string;
-            name: string;
             description: string | null;
             categoryId: string | null;
             locationName: string | null;
@@ -117,10 +117,10 @@ export declare class InvitationsController {
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
-            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             interestTags: string[];
             capacityLimit: number | null;
             isPublic: boolean;
+            status: string;
             cancellationReason: string | null;
             externalLink: string | null;
             externalLinkType: string | null;
@@ -132,13 +132,13 @@ export declare class InvitationsController {
         };
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         status: string;
+        eventId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
-        eventId: string;
         inviterId: string;
         inviteeId: string;
     })[]>;
@@ -152,13 +152,13 @@ export declare class InvitationsController {
         };
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         status: string;
+        eventId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
-        eventId: string;
         inviterId: string;
         inviteeId: string;
     })[]>;
@@ -171,17 +171,17 @@ export declare class InvitationsController {
             };
             category: {
                 id: string;
-                createdAt: Date;
                 name: string;
                 icon: string | null;
+                createdAt: Date;
             };
         } & {
             id: string;
-            status: string;
+            name: string;
             createdAt: Date;
+            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             updatedAt: Date;
             hostId: string;
-            name: string;
             description: string | null;
             categoryId: string | null;
             locationName: string | null;
@@ -190,23 +190,23 @@ export declare class InvitationsController {
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
-            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             interestTags: string[];
             capacityLimit: number | null;
             isPublic: boolean;
+            status: string;
             cancellationReason: string | null;
             externalLink: string | null;
             externalLinkType: string | null;
         };
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         status: string;
+        eventId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
-        eventId: string;
         inviterId: string;
         inviteeId: string;
     }>;

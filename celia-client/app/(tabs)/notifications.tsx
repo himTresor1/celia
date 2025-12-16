@@ -82,10 +82,14 @@ export default function NotificationsScreen() {
 
     try {
       const data = await api.getInvitations(user.id);
-      setInvitations(data);
+      // Ensure data is an array before setting state
+      const invitationsArray = Array.isArray(data) ? data : [];
+      console.log('[NotificationsScreen] Fetched invitations:', invitationsArray.length);
+      setInvitations(invitationsArray);
     } catch (error) {
       console.error('Error fetching invitations:', error);
       Alert.alert('Error', 'Failed to load invitations');
+      setInvitations([]); // Set empty array on error
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -170,7 +174,8 @@ export default function NotificationsScreen() {
 
   const renderInvitation = ({ item }: { item: Invitation }) => {
     const coverPhoto = item.event.photoUrls?.[0] || null;
-    const hostPhoto = item.inviter.photoUrls?.[0] || null;
+    // API returns avatarUrl, but component expects photoUrls array
+    const hostPhoto = item.inviter.photoUrls?.[0] || (item.inviter as any).avatarUrl || null;
 
     return (
       <TouchableOpacity
@@ -256,9 +261,11 @@ export default function NotificationsScreen() {
     );
   };
 
-  const pendingCount = invitations.filter((i) => i.status === 'pending').length;
-  const goingCount = invitations.filter((i) => i.status === 'going').length;
-  const declinedCount = invitations.filter(
+  // Ensure invitations is an array before filtering
+  const invitationsArray = Array.isArray(invitations) ? invitations : [];
+  const pendingCount = invitationsArray.filter((i) => i.status === 'pending').length;
+  const goingCount = invitationsArray.filter((i) => i.status === 'going').length;
+  const declinedCount = invitationsArray.filter(
     (i) => i.status === 'declined'
   ).length;
 
