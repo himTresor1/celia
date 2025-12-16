@@ -13,21 +13,25 @@ export declare class EventsController {
         };
         category: {
             id: string;
-            name: string;
             createdAt: Date;
+            name: string;
             icon: string | null;
         };
     } & {
         id: string;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        createdAt: Date;
+        updatedAt: Date;
         name: string;
         description: string | null;
+        hostId: string;
+        categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interestTags: string[];
         capacityLimit: number | null;
         isPublic: boolean;
@@ -35,10 +39,6 @@ export declare class EventsController {
         cancellationReason: string | null;
         externalLink: string | null;
         externalLinkType: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        hostId: string;
-        categoryId: string | null;
     }>;
     getMyEvents(user: any, status?: string): Promise<{
         stats: {
@@ -55,8 +55,8 @@ export declare class EventsController {
         };
         category: {
             id: string;
-            name: string;
             createdAt: Date;
+            name: string;
             icon: string | null;
         };
         invitations: {
@@ -64,20 +64,24 @@ export declare class EventsController {
             status: string;
             invitee: {
                 id: string;
-                photoUrls: import("@prisma/client/runtime/library").JsonValue;
                 fullName: string;
+                photoUrls: import("@prisma/client/runtime/library").JsonValue;
             };
         }[];
         id: string;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        createdAt: Date;
+        updatedAt: Date;
         name: string;
         description: string | null;
+        hostId: string;
+        categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interestTags: string[];
         capacityLimit: number | null;
         isPublic: boolean;
@@ -85,12 +89,12 @@ export declare class EventsController {
         cancellationReason: string | null;
         externalLink: string | null;
         externalLinkType: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        hostId: string;
-        categoryId: string | null;
     }[]>;
     findAll(user: any, status?: string, categoryId?: string, search?: string): Promise<({
+        _count: {
+            invitations: number;
+            attendees: number;
+        };
         host: {
             id: string;
             fullName: string;
@@ -99,8 +103,8 @@ export declare class EventsController {
         };
         category: {
             id: string;
-            name: string;
             createdAt: Date;
+            name: string;
             icon: string | null;
         };
         invitations: {
@@ -128,21 +132,21 @@ export declare class EventsController {
             userId: string;
             joinedAt: Date;
         }[];
-        _count: {
-            invitations: number;
-            attendees: number;
-        };
     } & {
         id: string;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        createdAt: Date;
+        updatedAt: Date;
         name: string;
         description: string | null;
+        hostId: string;
+        categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interestTags: string[];
         capacityLimit: number | null;
         isPublic: boolean;
@@ -150,12 +154,12 @@ export declare class EventsController {
         cancellationReason: string | null;
         externalLink: string | null;
         externalLinkType: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        hostId: string;
-        categoryId: string | null;
     })[]>;
     findOne(id: string, user: any): Promise<{
+        _count: {
+            invitations: number;
+            attendees: number;
+        };
         host: {
             id: string;
             email: string;
@@ -166,8 +170,8 @@ export declare class EventsController {
         };
         category: {
             id: string;
-            name: string;
             createdAt: Date;
+            name: string;
             icon: string | null;
         };
         invitations: {
@@ -192,25 +196,25 @@ export declare class EventsController {
             };
         } & {
             id: string;
-            eventId: string;
             userId: string;
+            eventId: string;
             joinedAt: Date;
         })[];
-        _count: {
-            invitations: number;
-            attendees: number;
-        };
     } & {
         id: string;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        createdAt: Date;
+        updatedAt: Date;
         name: string;
         description: string | null;
+        hostId: string;
+        categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interestTags: string[];
         capacityLimit: number | null;
         isPublic: boolean;
@@ -218,10 +222,6 @@ export declare class EventsController {
         cancellationReason: string | null;
         externalLink: string | null;
         externalLinkType: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        hostId: string;
-        categoryId: string | null;
     }>;
     update(id: string, user: any, dto: UpdateEventDto): Promise<{
         host: {
@@ -231,21 +231,25 @@ export declare class EventsController {
         };
         category: {
             id: string;
-            name: string;
             createdAt: Date;
+            name: string;
             icon: string | null;
         };
     } & {
         id: string;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        createdAt: Date;
+        updatedAt: Date;
         name: string;
         description: string | null;
+        hostId: string;
+        categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
-        photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interestTags: string[];
         capacityLimit: number | null;
         isPublic: boolean;
@@ -253,10 +257,6 @@ export declare class EventsController {
         cancellationReason: string | null;
         externalLink: string | null;
         externalLinkType: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        hostId: string;
-        categoryId: string | null;
     }>;
     delete(id: string, user: any): Promise<{
         message: string;
@@ -270,15 +270,19 @@ export declare class EventsController {
             };
         } & {
             id: string;
+            photoUrls: import("@prisma/client/runtime/library").JsonValue;
+            createdAt: Date;
+            updatedAt: Date;
             name: string;
             description: string | null;
+            hostId: string;
+            categoryId: string | null;
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
-            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             interestTags: string[];
             capacityLimit: number | null;
             isPublic: boolean;
@@ -286,10 +290,6 @@ export declare class EventsController {
             cancellationReason: string | null;
             externalLink: string | null;
             externalLinkType: string | null;
-            createdAt: Date;
-            updatedAt: Date;
-            hostId: string;
-            categoryId: string | null;
         };
         user: {
             id: string;
@@ -298,8 +298,8 @@ export declare class EventsController {
         };
     } & {
         id: string;
-        eventId: string;
         userId: string;
+        eventId: string;
         joinedAt: Date;
     }>;
     leaveEvent(id: string, user: any): Promise<{
@@ -315,8 +315,8 @@ export declare class EventsController {
         };
     } & {
         id: string;
-        eventId: string;
         userId: string;
+        eventId: string;
         joinedAt: Date;
     })[]>;
 }

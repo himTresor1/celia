@@ -58,6 +58,7 @@ export default function SavedCollectionScreen() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [myEvents, setMyEvents] = useState<any[]>([]);
   const [inviting, setInviting] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadSavedUsers();
@@ -76,8 +77,16 @@ export default function SavedCollectionScreen() {
       // Load from API instead of AsyncStorage to get real user IDs
       const { data, error } = await apiHelpers.getSavedUsers(user.id);
       if (data) {
-        // Handle both direct array and paginated response
-        const items = Array.isArray(data) ? data : data.items || [];
+        // API returns: { items: [...], total, page, ... } or direct array
+        // Handle both direct array and paginated response structure
+        const items = Array.isArray(data)
+          ? data
+          : data.items && Array.isArray(data.items)
+          ? data.items
+          : [];
+
+        console.log('[SavedCollection] Parsed items:', items.length);
+
         // Transform API response to match SavedUser interface
         const allSaved: SavedUser[] = items.map((item: any) => {
           const savedUser = item.user || item.saved_user || item;
@@ -399,7 +408,12 @@ export default function SavedCollectionScreen() {
         />
       </View>
 
-      {filteredUsers.length === 0 ? (
+      {loading ? (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.emptyText}>Loading saved users...</Text>
+        </View>
+      ) : filteredUsers.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Calendar size={64} color={Colors.textLight} />
           <Text style={styles.emptyText}>

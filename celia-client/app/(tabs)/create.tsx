@@ -134,7 +134,9 @@ export default function CreateScreen() {
       try {
         setLoadingCategories(true);
         const data = await api.getEventCategories();
-        setCategories(data || []);
+        // Ensure data is an array
+        const categoriesArray = Array.isArray(data) ? data : [];
+        setCategories(categoriesArray);
       } catch (error) {
         console.error('Error loading categories:', error);
         // Fallback to default categories if API fails
@@ -165,52 +167,62 @@ export default function CreateScreen() {
     }
   };
 
-  const validateStep = () => {
+  const validateStep = (): { isValid: boolean; errorMessage: string | null } => {
     setError(null);
 
     if (step === 1) {
       if (name.length < 3 || name.length > 50) {
-        setError('Event name must be between 3 and 50 characters');
-        return false;
+        const errorMsg = 'Event name must be between 3 and 50 characters';
+        setError(errorMsg);
+        return { isValid: false, errorMessage: errorMsg };
       }
       if (description.length < 50 || description.length > 500) {
-        setError('Description must be between 50 and 500 characters');
-        return false;
+        const errorMsg = 'Description must be between 50 and 500 characters';
+        setError(errorMsg);
+        return { isValid: false, errorMessage: errorMsg };
       }
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const selectedDate = new Date(eventDate);
       selectedDate.setHours(0, 0, 0, 0);
       if (selectedDate < today) {
-        setError('Event date must be in the future');
-        return false;
+        const errorMsg = 'Event date must be in the future';
+        setError(errorMsg);
+        return { isValid: false, errorMessage: errorMsg };
       }
       if (!locationName.trim()) {
-        setError('Please enter location');
-        return false;
+        const errorMsg = 'Please enter location';
+        setError(errorMsg);
+        return { isValid: false, errorMessage: errorMsg };
       }
-      return true;
+      return { isValid: true, errorMessage: null };
     }
 
     if (step === 2) {
       if (photoUrls.length === 0) {
-        setError('Please add at least 1 photo');
-        return false;
+        const errorMsg = 'Please add at least 1 photo';
+        setError(errorMsg);
+        return { isValid: false, errorMessage: errorMsg };
       }
       if (!selectedCategory) {
-        setError('Please select an event category');
-        return false;
+        const errorMsg = 'Please select an event category';
+        setError(errorMsg);
+        return { isValid: false, errorMessage: errorMsg };
       }
-      return true;
+      return { isValid: true, errorMessage: null };
     }
 
-    return true;
+    return { isValid: true, errorMessage: null };
   };
 
   const handleNext = () => {
-    if (validateStep()) {
-      setStep(step + 1);
+    const validation = validateStep();
+    if (!validation.isValid) {
+      // Show alert to make error more visible
+      Alert.alert('Validation Error', validation.errorMessage || 'Please check your input and try again');
+      return;
     }
+    setStep(step + 1);
   };
 
   const handleSaveDraft = () => {
@@ -219,7 +231,11 @@ export default function CreateScreen() {
   };
 
   const handleCreateEvent = async () => {
-    if (!validateStep()) return;
+    const validation = validateStep();
+    if (!validation.isValid) {
+      Alert.alert('Validation Error', validation.errorMessage || 'Please check your input and try again');
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -470,7 +486,8 @@ export default function CreateScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Event Category *</Text>
               <View style={styles.categoryGrid}>
-                {categories.map((category) => (
+                {Array.isArray(categories) && categories.length > 0 ? (
+                  categories.map((category) => (
                   <TouchableOpacity
                     key={category.id}
                     style={[
@@ -490,7 +507,12 @@ export default function CreateScreen() {
                       {category.name}
                     </Text>
                   </TouchableOpacity>
-                ))}
+                  ))
+                ) : (
+                  <Text style={styles.helperText}>
+                    {loadingCategories ? 'Loading categories...' : 'No categories available'}
+                  </Text>
+                )}
               </View>
             </View>
 

@@ -44,7 +44,9 @@ export default function SavedListScreen() {
         colleges.add(savedUser.college_name || savedUser.collegeName);
       }
       if (savedUser.interests && Array.isArray(savedUser.interests)) {
-        savedUser.interests.forEach((interest: string) => interests.add(interest));
+        savedUser.interests.forEach((interest: string) =>
+          interests.add(interest)
+        );
       }
     });
 
@@ -111,8 +113,10 @@ export default function SavedListScreen() {
         const savedUser = item.user || item.saved_user || item;
         const name = savedUser.full_name || savedUser.fullName || '';
         const college = savedUser.college_name || savedUser.collegeName || '';
-        return name.toLowerCase().includes(query) || 
-               college.toLowerCase().includes(query);
+        return (
+          name.toLowerCase().includes(query) ||
+          college.toLowerCase().includes(query)
+        );
       });
     }
 
@@ -130,7 +134,7 @@ export default function SavedListScreen() {
       filtered = filtered.filter((item: any) => {
         const savedUser = item.user || item.saved_user || item;
         const userInterests = savedUser.interests || [];
-        return filters.interests.some((interest: string) => 
+        return filters.interests.some((interest: string) =>
           userInterests.includes(interest)
         );
       });
@@ -180,15 +184,21 @@ export default function SavedListScreen() {
     }
   };
 
-
   const renderItem = ({ item }: any) => {
     // Handle both nested saved_user structure and flat structure
-    // API returns: { id, savedAt, context, notes, user: { id, fullName, ... } }
+    // API returns: { id, savedAt, context, notes, user: { id, fullName, avatarUrl, collegeName, ... } }
     const savedUser = item.user || item.saved_user || item;
     const userId = savedUser.id || item.savedUserId || savedUser.saved_user_id;
-    const rating = apiHelpers.displayRating(
-      savedUser.attractiveness_score || 0
-    );
+
+    // Handle both camelCase (API) and snake_case (legacy) field names
+    const fullName = savedUser.fullName || savedUser.full_name;
+    const avatarUrl = savedUser.avatarUrl || savedUser.avatar_url;
+    const collegeName = savedUser.collegeName || savedUser.college_name;
+    const attractivenessScore =
+      savedUser.attractivenessScore || savedUser.attractiveness_score || 0;
+    const savedAt = item.savedAt || item.created_at;
+
+    const rating = apiHelpers.displayRating(attractivenessScore);
     const isSelected = selectedUsers.includes(userId);
 
     return (
@@ -201,17 +211,18 @@ export default function SavedListScreen() {
         </View>
         <Image
           source={{
-            uri: savedUser.avatar_url || 'https://via.placeholder.com/80',
+            uri: avatarUrl || 'https://via.placeholder.com/80',
           }}
           style={styles.avatar}
         />
         <View style={styles.info}>
-          <Text style={styles.name}>{savedUser.full_name}</Text>
-          <Text style={styles.college}>{savedUser.college_name}</Text>
+          <Text style={styles.name}>{fullName}</Text>
+          <Text style={styles.college}>{collegeName}</Text>
           <View style={styles.ratingRow}>
             <Text style={styles.rating}>⭐ {rating}/10</Text>
             <Text style={styles.savedDate}>
-              Saved {new Date(item.created_at).toLocaleDateString()}
+              Saved{' '}
+              {savedAt ? new Date(savedAt).toLocaleDateString() : 'recently'}
             </Text>
           </View>
         </View>
@@ -277,46 +288,46 @@ export default function SavedListScreen() {
       </View>
       <View style={styles.container}>
         {savedUsers.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>No saved users yet</Text>
-          <Text style={styles.emptySubtext}>
-            Save users from discovery to invite them later
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={savedUsers}
-          renderItem={renderItem}
-          keyExtractor={(item, index) => {
-            const savedUser = item.saved_user || item;
-            return (
-              savedUser.id ||
-              savedUser.saved_user_id ||
-              item.id ||
-              `saved-${index}`
-            );
-          }}
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            loadSavedUsers();
-          }}
-          contentContainerStyle={styles.list}
-        />
-      )}
-
-      {selectedUsers.length > 0 && (
-        <View style={styles.floatingButton}>
-          <TouchableOpacity
-            style={styles.inviteButton}
-            onPress={() => setShowInviteModal(true)}
-          >
-            <Send size={20} color="#fff" />
-            <Text style={styles.inviteButtonText}>
-              Invite {selectedUsers.length} to Event
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>No saved users yet</Text>
+            <Text style={styles.emptySubtext}>
+              Save users from discovery to invite them later
             </Text>
-          </TouchableOpacity>
-        </View>
+          </View>
+        ) : (
+          <FlatList
+            data={savedUsers}
+            renderItem={renderItem}
+            keyExtractor={(item, index) => {
+              const savedUser = item.saved_user || item;
+              return (
+                savedUser.id ||
+                savedUser.saved_user_id ||
+                item.id ||
+                `saved-${index}`
+              );
+            }}
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadSavedUsers();
+            }}
+            contentContainerStyle={styles.list}
+          />
+        )}
+
+        {selectedUsers.length > 0 && (
+          <View style={styles.floatingButton}>
+            <TouchableOpacity
+              style={styles.inviteButton}
+              onPress={() => setShowInviteModal(true)}
+            >
+              <Send size={20} color="#fff" />
+              <Text style={styles.inviteButtonText}>
+                Invite {selectedUsers.length} to Event
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         <SendInvitationModal

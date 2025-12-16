@@ -57,9 +57,20 @@ let ListsService = class ListsService {
         };
     }
     async addToSaved(userId, savedUserId, context, notes) {
+        if (!userId || userId === 'undefined' || userId === 'null' || (typeof userId === 'string' && userId.trim() === '')) {
+            console.error('[ListsService] addToSaved - userId is missing or invalid!');
+            console.error('[ListsService] addToSaved - userId value:', userId);
+            console.error('[ListsService] addToSaved - userId type:', typeof userId);
+            throw new Error('User ID is required to save a user. Please ensure you are authenticated.');
+        }
+        if (!savedUserId || savedUserId === 'undefined' || savedUserId === 'null' || (typeof savedUserId === 'string' && savedUserId.trim() === '')) {
+            console.error('[ListsService] addToSaved - savedUserId is missing or invalid!');
+            throw new Error('Saved user ID is required');
+        }
         if (userId === savedUserId) {
             throw new Error('Cannot save yourself');
         }
+        console.log('[ListsService] addToSaved - Creating saved user:', { userId, savedUserId, context });
         const saved = await this.prisma.savedUser.create({
             data: {
                 userId,
