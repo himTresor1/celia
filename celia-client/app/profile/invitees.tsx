@@ -133,7 +133,9 @@ export default function InviteesListScreen() {
 
   const renderItem = ({ item }: any) => {
     const invitee = item.invitee || item.user;
-    const rating = apiHelpers.displayRating(invitee?.attractiveness_score || 0);
+    const rating = apiHelpers.displayRating(
+      invitee?.attractivenessScore ?? invitee?.attractiveness_score ?? 0
+    );
     const userId = invitee?.id || item.id;
     const isSelected = selectedUsers.includes(userId);
 
@@ -146,7 +148,12 @@ export default function InviteesListScreen() {
           {isSelected && <Text style={styles.checkmark}>✓</Text>}
         </View>
         <Image
-          source={{ uri: invitee?.avatar_url || 'https://via.placeholder.com/70' }}
+          source={{
+            uri:
+              invitee?.avatarUrl ||
+              invitee?.avatar_url ||
+              'https://via.placeholder.com/70',
+          }}
           style={styles.avatar}
         />
         <View style={styles.info}>

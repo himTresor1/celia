@@ -1,5 +1,17 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image, ActivityIndicator, FlatList, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Image,
+  ActivityIndicator,
+  FlatList,
+  Alert,
+  Modal,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Camera, X, MapPin, GraduationCap, Heart } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -31,22 +43,75 @@ export default function ProfileSetupScreen() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
   const [collegeEmail, setCollegeEmail] = useState('');
+  const [collegeEmailSent, setCollegeEmailSent] = useState(false);
+  const [collegeEmailVerified, setCollegeEmailVerified] = useState(false);
+  const [collegeOtp, setCollegeOtp] = useState('');
+  const [generatedCollegeOtp, setGeneratedCollegeOtp] = useState<string | null>(
+    null
+  );
+  const [sendingCollegeOtp, setSendingCollegeOtp] = useState(false);
+  const [collegeOtpError, setCollegeOtpError] = useState<string | null>(null);
+  const [showCollegeVerificationModal, setShowCollegeVerificationModal] =
+    useState(false);
+  const [collegeEmailError, setCollegeEmailError] = useState<string | null>(
+    null
+  );
   const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
   const [locationInput, setLocationInput] = useState('');
 
   const [collegeSearch, setCollegeSearch] = useState('');
 
   const colleges: College[] = [
-    { id: '1', name: 'Harvard University', domain: 'harvard.edu', location: 'Cambridge, MA' },
-    { id: '2', name: 'Stanford University', domain: 'stanford.edu', location: 'Stanford, CA' },
+    {
+      id: '1',
+      name: 'Harvard University',
+      domain: 'harvard.edu',
+      location: 'Cambridge, MA',
+    },
+    {
+      id: '2',
+      name: 'Stanford University',
+      domain: 'stanford.edu',
+      location: 'Stanford, CA',
+    },
     { id: '3', name: 'MIT', domain: 'mit.edu', location: 'Cambridge, MA' },
-    { id: '4', name: 'Yale University', domain: 'yale.edu', location: 'New Haven, CT' },
-    { id: '5', name: 'Princeton University', domain: 'princeton.edu', location: 'Princeton, NJ' },
-    { id: '6', name: 'Columbia University', domain: 'columbia.edu', location: 'New York, NY' },
-    { id: '7', name: 'University of Chicago', domain: 'uchicago.edu', location: 'Chicago, IL' },
-    { id: '8', name: 'UC Berkeley', domain: 'berkeley.edu', location: 'Berkeley, CA' },
+    {
+      id: '4',
+      name: 'Yale University',
+      domain: 'yale.edu',
+      location: 'New Haven, CT',
+    },
+    {
+      id: '5',
+      name: 'Princeton University',
+      domain: 'princeton.edu',
+      location: 'Princeton, NJ',
+    },
+    {
+      id: '6',
+      name: 'Columbia University',
+      domain: 'columbia.edu',
+      location: 'New York, NY',
+    },
+    {
+      id: '7',
+      name: 'University of Chicago',
+      domain: 'uchicago.edu',
+      location: 'Chicago, IL',
+    },
+    {
+      id: '8',
+      name: 'UC Berkeley',
+      domain: 'berkeley.edu',
+      location: 'Berkeley, CA',
+    },
     { id: '9', name: 'UCLA', domain: 'ucla.edu', location: 'Los Angeles, CA' },
-    { id: '10', name: 'Cornell University', domain: 'cornell.edu', location: 'Ithaca, NY' },
+    {
+      id: '10',
+      name: 'Cornell University',
+      domain: 'cornell.edu',
+      location: 'Ithaca, NY',
+    },
   ];
 
   const interests: Interest[] = [
@@ -78,10 +143,14 @@ export default function ProfileSetupScreen() {
       return;
     }
 
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+      Alert.alert(
+        'Permission Required',
+        'Permission to access camera roll is required!'
+      );
       return;
     }
 
@@ -122,19 +191,36 @@ export default function ProfileSetupScreen() {
       if (profile.bio) {
         setBio(profile.bio);
       }
-      if (profile.photo_urls && Array.isArray(profile.photo_urls) && profile.photo_urls.length > 0) {
+      if (
+        profile.photo_urls &&
+        Array.isArray(profile.photo_urls) &&
+        profile.photo_urls.length > 0
+      ) {
         setPhotoUrls(profile.photo_urls);
       }
-      if (profile.interests && Array.isArray(profile.interests) && profile.interests.length > 0) {
+      if (
+        profile.interests &&
+        Array.isArray(profile.interests) &&
+        profile.interests.length > 0
+      ) {
         setSelectedInterests(profile.interests);
       }
       if (profile.college_name) {
-        const existingCollege = colleges.find(c => c.name === profile.college_name);
+        const existingCollege = colleges.find(
+          (c) => c.name === profile.college_name
+        );
         if (existingCollege) {
           setSelectedCollege(existingCollege);
         }
       }
-      if (profile.preferred_locations && Array.isArray(profile.preferred_locations) && profile.preferred_locations.length > 0) {
+      if (profile.college_verified) {
+        setCollegeEmailVerified(true);
+      }
+      if (
+        profile.preferred_locations &&
+        Array.isArray(profile.preferred_locations) &&
+        profile.preferred_locations.length > 0
+      ) {
         setPreferredLocations(profile.preferred_locations);
       }
 
@@ -161,6 +247,96 @@ export default function ProfileSetupScreen() {
 
   const handleRemoveLocation = (index: number) => {
     setPreferredLocations(preferredLocations.filter((_, i) => i !== index));
+  };
+
+  const isCollegeEmailValid = (email: string): boolean => {
+    if (!email.trim() || !selectedCollege) return false;
+
+    const emailLower = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(emailLower)) return false;
+
+    if (selectedCollege.domain) {
+      const expectedDomain = `@${selectedCollege.domain.toLowerCase()}`;
+      return emailLower.endsWith(expectedDomain);
+    }
+
+    return true;
+  };
+
+  const handleSendCollegeVerificationCode = () => {
+    if (!selectedCollege) {
+      setCollegeEmailError('Please select your college first');
+      return;
+    }
+
+    const email = collegeEmail.trim().toLowerCase();
+    if (!email) {
+      setCollegeEmailError('Please enter your college email');
+      return;
+    }
+
+    // Basic email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setCollegeEmailError('Please enter a valid email address');
+      return;
+    }
+
+    // Enforce college domain when available
+    if (selectedCollege.domain) {
+      const expectedDomain = `@${selectedCollege.domain.toLowerCase()}`;
+      if (!email.endsWith(expectedDomain)) {
+        setCollegeEmailError(
+          `Please use your ${selectedCollege.domain} email address`
+        );
+        return;
+      }
+    }
+
+    setCollegeEmailError(null);
+    setSendingCollegeOtp(true);
+
+    try {
+      // For now we generate a local OTP. In production this would be sent via email.
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedCollegeOtp(code);
+      setCollegeEmailSent(true);
+      setCollegeOtp('');
+      setCollegeOtpError(null);
+      setCollegeEmailVerified(false);
+
+      Alert.alert(
+        'Verification code sent',
+        `Enter the 6-digit code we sent to ${email}.\n\n(Dev note: in this build the code is ${code}. In production this will be emailed to the user.)`
+      );
+    } finally {
+      setSendingCollegeOtp(false);
+    }
+  };
+
+  const handleVerifyCollegeOtp = () => {
+    if (!generatedCollegeOtp) {
+      setCollegeOtpError('Please request a verification code first');
+      return;
+    }
+
+    if (!collegeOtp || collegeOtp.length !== 6) {
+      setCollegeOtpError('Please enter the 6-digit code');
+      return;
+    }
+
+    if (collegeOtp !== generatedCollegeOtp) {
+      setCollegeOtpError('Incorrect code. Please try again.');
+      return;
+    }
+
+    setCollegeOtpError(null);
+    setCollegeEmailVerified(true);
+    setGeneratedCollegeOtp(null);
+
+    Alert.alert('Verified', 'Your college email has been verified.');
   };
 
   const validateStep = () => {
@@ -195,6 +371,10 @@ export default function ProfileSetupScreen() {
         setError('Please select your college');
         return false;
       }
+      if (!collegeEmailVerified) {
+        setError('Please verify your college email');
+        return false;
+      }
       return true;
     }
 
@@ -220,6 +400,7 @@ export default function ProfileSetupScreen() {
         interests: selectedInterests,
         collegeName: selectedCollege?.name,
         collegeId: selectedCollege?.id,
+        collegeVerified: collegeEmailVerified,
         preferredLocations,
         profileCompleted: true,
       };
@@ -229,7 +410,9 @@ export default function ProfileSetupScreen() {
       router.replace('/(tabs)');
     } catch (err: any) {
       console.error('Error completing profile:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to save profile');
+      setError(
+        err.response?.data?.message || err.message || 'Failed to save profile'
+      );
     } finally {
       setLoading(false);
     }
@@ -320,7 +503,8 @@ export default function ProfileSetupScreen() {
                 )}
               </View>
               <Text style={styles.helperText}>
-                For this demo, we're using placeholder images. In production, you'd integrate with expo-image-picker.
+                For this demo, we're using placeholder images. In production,
+                you'd integrate with expo-image-picker.
               </Text>
             </View>
 
@@ -434,6 +618,14 @@ export default function ProfileSetupScreen() {
                   onPress={() => {
                     setSelectedCollege(college);
                     setCollegeSearch('');
+                    setCollegeEmail('');
+                    setCollegeEmailSent(false);
+                    setCollegeOtp('');
+                    setGeneratedCollegeOtp(null);
+                    setCollegeOtpError(null);
+                    setCollegeEmailError(null);
+                    setCollegeEmailVerified(false);
+                    setShowCollegeVerificationModal(true);
                   }}
                 >
                   <Text style={styles.collegeName}>{college.name}</Text>
@@ -445,25 +637,6 @@ export default function ProfileSetupScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-
-            {selectedCollege?.domain && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>
-                  College Email (Optional - for verification)
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={`your-email@${selectedCollege.domain}`}
-                  value={collegeEmail}
-                  onChangeText={setCollegeEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-                <Text style={styles.helperText}>
-                  Verify your student status with a .edu email
-                </Text>
-              </View>
-            )}
           </View>
         )}
 
@@ -478,9 +651,7 @@ export default function ProfileSetupScreen() {
             </Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Add City (up to 3)
-              </Text>
+              <Text style={styles.label}>Add City (up to 3)</Text>
               <View style={styles.locationInputContainer}>
                 <MapPin size={20} color="#666" />
                 <TextInput
@@ -538,14 +709,178 @@ export default function ProfileSetupScreen() {
           disabled={loading}
         >
           <Text style={styles.nextButtonText}>
-            {loading
-              ? 'Creating Profile...'
-              : step === 4
-              ? 'Complete'
-              : 'Next'}
+            {loading ? 'Creating Profile...' : step === 4 ? 'Complete' : 'Next'}
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* College Email Verification Modal */}
+      <Modal
+        visible={showCollegeVerificationModal && selectedCollege !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCollegeVerificationModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowCollegeVerificationModal(false)}
+          />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderLeft}>
+                <GraduationCap size={24} color="#3AFF6E" />
+                <View style={styles.modalTitleContainer}>
+                  <Text style={styles.modalTitle}>Verify Your College</Text>
+                  <Text style={styles.modalSubtitle}>
+                    {selectedCollege?.name}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowCollegeVerificationModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <X size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.modalBody}>
+                <Text style={styles.modalDescription}>
+                  Enter your college email address to verify your student
+                  status. We'll send you a verification code.
+                </Text>
+
+                <View style={styles.modalInputGroup}>
+                  <Text style={styles.modalLabel}>College Email *</Text>
+                  <TextInput
+                    style={[
+                      styles.modalInput,
+                      collegeEmailVerified && styles.modalInputDisabled,
+                      collegeEmailError && styles.modalInputError,
+                    ]}
+                    placeholder={`your-email@${
+                      selectedCollege?.domain || 'edu'
+                    }`}
+                    value={collegeEmail}
+                    onChangeText={(text) => {
+                      setCollegeEmail(text);
+                      setCollegeEmailError(null);
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={!collegeEmailVerified}
+                    placeholderTextColor="#999"
+                  />
+                  {collegeEmailError && (
+                    <Text style={styles.modalErrorText}>
+                      {collegeEmailError}
+                    </Text>
+                  )}
+                </View>
+
+                {!collegeEmailSent && (
+                  <TouchableOpacity
+                    style={[
+                      styles.modalSendCodeButton,
+                      (sendingCollegeOtp ||
+                        collegeEmailVerified ||
+                        !isCollegeEmailValid(collegeEmail)) &&
+                        styles.modalSendCodeButtonDisabled,
+                    ]}
+                    onPress={handleSendCollegeVerificationCode}
+                    disabled={
+                      sendingCollegeOtp ||
+                      collegeEmailVerified ||
+                      !isCollegeEmailValid(collegeEmail)
+                    }
+                  >
+                    {sendingCollegeOtp ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.modalSendCodeButtonText}>
+                        Send Verification Code
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+
+                {collegeEmailSent && !collegeEmailVerified && (
+                  <View style={styles.modalOtpSection}>
+                    <Text style={styles.modalLabel}>Verification Code</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="Enter 6-digit code"
+                      value={collegeOtp}
+                      onChangeText={setCollegeOtp}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      placeholderTextColor="#999"
+                    />
+                    {collegeOtpError && (
+                      <Text style={styles.modalErrorText}>
+                        {collegeOtpError}
+                      </Text>
+                    )}
+                    <View style={styles.modalOtpActions}>
+                      <TouchableOpacity
+                        style={styles.modalResendButton}
+                        onPress={handleSendCollegeVerificationCode}
+                        disabled={sendingCollegeOtp}
+                      >
+                        {sendingCollegeOtp ? (
+                          <ActivityIndicator size="small" color="#666" />
+                        ) : (
+                          <Text style={styles.modalResendButtonText}>
+                            Resend Code
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.modalVerifyButton,
+                          !collegeOtp.trim() &&
+                            styles.modalVerifyButtonDisabled,
+                        ]}
+                        onPress={handleVerifyCollegeOtp}
+                        disabled={!collegeOtp.trim()}
+                      >
+                        <Text style={styles.modalVerifyButtonText}>
+                          Verify Code
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                {collegeEmailVerified && (
+                  <View style={styles.modalVerifiedBadge}>
+                    <Text style={styles.modalVerifiedBadgeText}>
+                      ✓ Email verified successfully
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+
+            {collegeEmailVerified && (
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.modalDoneButton}
+                  onPress={() => setShowCollegeVerificationModal(false)}
+                >
+                  <Text style={styles.modalDoneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -646,6 +981,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     fontStyle: 'italic',
+  },
+  inlineError: {
+    fontSize: 12,
+    color: '#c00',
+    marginTop: 4,
   },
   photosContainer: {
     flexDirection: 'row',
@@ -767,6 +1107,55 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
   },
+  collegeEmailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  collegeEmailInput: {
+    flex: 1,
+  },
+  inputDisabled: {
+    backgroundColor: '#f5f5f5',
+    color: '#999',
+  },
+  sendCodeButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: '#3AFF6E',
+  },
+  sendCodeButtonDisabled: {
+    backgroundColor: '#b7f5c9',
+  },
+  sendCodeButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  collegeOtpContainer: {
+    marginTop: 12,
+    gap: 8,
+  },
+  verifyCodeButton: {
+    marginTop: 4,
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#1a1a1a',
+  },
+  verifyCodeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  verifiedBadge: {
+    marginTop: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1a8f4d',
+  },
   locationInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -845,5 +1234,199 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '55%',
+    minHeight: '50%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  modalTitleContainer: {
+    flex: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 2,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalScrollContent: {
+    flex: 1,
+  },
+  modalBody: {
+    padding: 20,
+    gap: 20,
+  },
+  modalDescription: {
+    fontSize: 15,
+    color: '#666',
+    lineHeight: 22,
+  },
+  modalInputGroup: {
+    gap: 8,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#1a1a1a',
+  },
+  modalInputDisabled: {
+    backgroundColor: '#f5f5f5',
+    color: '#999',
+  },
+  modalInputError: {
+    borderColor: '#FF3B30',
+  },
+  modalSendCodeButton: {
+    backgroundColor: '#3AFF6E',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  modalSendCodeButtonDisabled: {
+    backgroundColor: '#b7f5c9',
+  },
+  modalSendCodeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  modalOtpSection: {
+    gap: 12,
+    marginTop: 8,
+  },
+  modalOtpActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalResendButton: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  modalResendButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  modalErrorText: {
+    fontSize: 13,
+    color: '#FF3B30',
+    marginTop: -4,
+  },
+  modalHelperText: {
+    fontSize: 13,
+    color: '#999',
+    fontStyle: 'italic',
+    marginTop: -4,
+  },
+  modalVerifyButton: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  modalVerifyButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  modalVerifyButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  modalVerifiedBadge: {
+    backgroundColor: '#F0FFF7',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3AFF6E',
+    alignItems: 'center',
+  },
+  modalVerifiedBadgeText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1a8f4d',
+  },
+  modalFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  modalDoneButton: {
+    backgroundColor: '#3AFF6E',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  modalDoneButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

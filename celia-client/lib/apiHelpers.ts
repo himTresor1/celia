@@ -72,7 +72,9 @@ export const apiHelpers = {
 
   async getSavedUsers(userId: string) {
     try {
-      const data = await api.getSavedUsers(userId);
+      // Backend wraps responses as: { message, data: { items, total, ... } }
+      const response = await api.getSavedUsers(userId);
+      const data = response?.data ?? response;
       return { data, error: null };
     } catch (error: any) {
       return { data: null, error: error.response?.data?.message || error.message };
@@ -109,7 +111,9 @@ export const apiHelpers = {
 
   async getInvitees(userId: string) {
     try {
-      const data = await api.getInvitees(userId);
+      // Backend wraps responses as: { message, data: { items, total, ... } }
+      const response = await api.getInvitees(userId);
+      const data = response?.data ?? response;
       return { data, error: null };
     } catch (error: any) {
       return { data: null, error: error.response?.data?.message || error.message };

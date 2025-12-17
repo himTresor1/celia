@@ -7,7 +7,7 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
-import { X, Filter } from 'lucide-react-native';
+import { X, Filter, ChevronDown, ChevronUp, Check } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 
 interface FilterOption {
@@ -38,12 +38,20 @@ export default function ListFiltersModal({
 }: ListFiltersModalProps) {
   const [filters, setFilters] = useState(currentFilters);
   const [searchQuery, setSearchQuery] = useState(currentFilters.search || '');
+  const [collegeDropdownOpen, setCollegeDropdownOpen] = useState(false);
+  const [interestsDropdownOpen, setInterestsDropdownOpen] = useState(false);
+  const [collegeSearch, setCollegeSearch] = useState('');
+  const [interestSearch, setInterestSearch] = useState('');
 
   // Reset to current filters when modal opens
   useEffect(() => {
     if (visible) {
       setFilters(currentFilters);
       setSearchQuery(currentFilters.search || '');
+      setCollegeDropdownOpen(false);
+      setInterestsDropdownOpen(false);
+      setCollegeSearch('');
+      setInterestSearch('');
     }
   }, [visible, currentFilters]);
 
@@ -55,6 +63,10 @@ export default function ListFiltersModal({
   const handleReset = () => {
     setFilters({});
     setSearchQuery('');
+    setCollegeDropdownOpen(false);
+    setInterestsDropdownOpen(false);
+    setCollegeSearch('');
+    setInterestSearch('');
     onApply({});
     onClose();
   };
@@ -93,68 +105,247 @@ export default function ListFiltersModal({
             {filterOptions?.colleges && filterOptions.colleges.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>College</Text>
-                <View style={styles.chipContainer}>
-                  {filterOptions.colleges.map((college) => (
-                    <TouchableOpacity
-                      key={college.id}
+
+                {/* College dropdown trigger */}
+                <TouchableOpacity
+                  style={styles.dropdownTrigger}
+                  activeOpacity={0.8}
+                  onPress={() =>
+                    setCollegeDropdownOpen((open) => !open)
+                  }
+                >
+                  <View style={styles.dropdownTextContainer}>
+                    <Text
                       style={[
-                        styles.chip,
-                        filters.collegeId === college.id && styles.chipActive,
+                        styles.dropdownValue,
+                        !filters.collegeId && styles.dropdownPlaceholder,
                       ]}
-                      onPress={() =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          collegeId:
-                            prev.collegeId === college.id ? undefined : college.id,
-                        }))
-                      }
+                      numberOfLines={1}
                     >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          filters.collegeId === college.id && styles.chipTextActive,
-                        ]}
+                      {filters.collegeId
+                        ? filterOptions.colleges.find(
+                            (c) => c.id === filters.collegeId,
+                          )?.label || 'Any college'
+                        : 'Any college'}
+                    </Text>
+                  </View>
+                  {collegeDropdownOpen ? (
+                    <ChevronUp size={18} color="#666" />
+                  ) : (
+                    <ChevronDown size={18} color="#666" />
+                  )}
+                </TouchableOpacity>
+
+                {/* College dropdown menu */}
+                {collegeDropdownOpen && (
+                  <View style={styles.dropdownMenu}>
+                    {filterOptions.colleges.length > 8 && (
+                      <TextInput
+                        style={styles.dropdownSearchInput}
+                        placeholder="Search colleges..."
+                        value={collegeSearch}
+                        onChangeText={setCollegeSearch}
+                        placeholderTextColor="#999"
+                      />
+                    )}
+                    <ScrollView
+                      style={styles.dropdownScroll}
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      <TouchableOpacity
+                        style={styles.dropdownOption}
+                        onPress={() => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            collegeId: undefined,
+                          }));
+                          setCollegeDropdownOpen(false);
+                        }}
                       >
-                        {college.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        <Text style={styles.dropdownOptionLabel}>Any college</Text>
+                        {!filters.collegeId && (
+                          <Check size={18} color="#3AFF6E" />
+                        )}
+                      </TouchableOpacity>
+
+                      {filterOptions.colleges
+                        .filter((college) =>
+                          college.label
+                            .toLowerCase()
+                            .includes(collegeSearch.toLowerCase()),
+                        )
+                        .map((college) => {
+                          const isSelected = filters.collegeId === college.id;
+                          return (
+                            <TouchableOpacity
+                              key={college.id}
+                              style={[
+                                styles.dropdownOption,
+                                isSelected && styles.dropdownOptionSelected,
+                              ]}
+                              onPress={() => {
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  collegeId:
+                                    prev.collegeId === college.id ? undefined : college.id,
+                                }));
+                                setCollegeDropdownOpen(false);
+                              }}
+                            >
+                              <Text
+                                style={[
+                                  styles.dropdownOptionLabel,
+                                  isSelected && styles.dropdownOptionLabelSelected,
+                                ]}
+                              >
+                                {college.label}
+                              </Text>
+                              {isSelected && (
+                                <Check size={18} color="#3AFF6E" />
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
             )}
 
             {filterOptions?.interests && filterOptions.interests.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Interests</Text>
-                <View style={styles.chipContainer}>
-                  {filterOptions.interests.map((interest) => (
-                    <TouchableOpacity
-                      key={interest.id}
+
+                {/* Interests dropdown trigger */}
+                <TouchableOpacity
+                  style={styles.dropdownTrigger}
+                  activeOpacity={0.8}
+                  onPress={() =>
+                    setInterestsDropdownOpen((open) => !open)
+                  }
+                >
+                  <View style={styles.dropdownTextContainer}>
+                    <Text
                       style={[
-                        styles.chip,
-                        filters.interests?.includes(interest.value) &&
-                          styles.chipActive,
+                        styles.dropdownValue,
+                        (!filters.interests || filters.interests.length === 0) &&
+                          styles.dropdownPlaceholder,
                       ]}
-                      onPress={() => {
-                        const currentInterests = filters.interests || [];
-                        const newInterests = currentInterests.includes(interest.value)
-                          ? currentInterests.filter((i: string) => i !== interest.value)
-                          : [...currentInterests, interest.value];
-                        setFilters((prev) => ({ ...prev, interests: newInterests }));
-                      }}
+                      numberOfLines={1}
                     >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          filters.interests?.includes(interest.value) &&
-                            styles.chipTextActive,
-                        ]}
+                      {filters.interests && filters.interests.length > 0
+                        ? filters.interests.length === 1
+                          ? filterOptions.interests.find(
+                              (i) => i.value === filters.interests[0],
+                            )?.label || '1 interest selected'
+                          : (() => {
+                              const labels = filters.interests
+                                .map(
+                                  (val: string) =>
+                                    filterOptions.interests.find(
+                                      (i) => i.value === val,
+                                    )?.label,
+                                )
+                                .filter(Boolean) as string[];
+                              if (labels.length === 0) {
+                                return `${filters.interests.length} interests selected`;
+                              }
+                              if (labels.length === 1) return labels[0];
+                              return `${labels[0]}, ${labels[1]} +${
+                                labels.length - 2
+                              }`;
+                            })()
+                        : 'Any interests'}
+                    </Text>
+                  </View>
+                  {interestsDropdownOpen ? (
+                    <ChevronUp size={18} color="#666" />
+                  ) : (
+                    <ChevronDown size={18} color="#666" />
+                  )}
+                </TouchableOpacity>
+
+                {/* Interests dropdown menu */}
+                {interestsDropdownOpen && (
+                  <View style={styles.dropdownMenu}>
+                    {filterOptions.interests.length > 8 && (
+                      <TextInput
+                        style={styles.dropdownSearchInput}
+                        placeholder="Search interests..."
+                        value={interestSearch}
+                        onChangeText={setInterestSearch}
+                        placeholderTextColor="#999"
+                      />
+                    )}
+                    <ScrollView
+                      style={styles.dropdownScroll}
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      <TouchableOpacity
+                        style={styles.dropdownOption}
+                        onPress={() => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            interests: [],
+                          }));
+                        }}
                       >
-                        {interest.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        <Text style={styles.dropdownOptionLabel}>Any interests</Text>
+                        {(!filters.interests ||
+                          filters.interests.length === 0) && (
+                          <Check size={18} color="#3AFF6E" />
+                        )}
+                      </TouchableOpacity>
+
+                      {filterOptions.interests
+                        .filter((interest) =>
+                          interest.label
+                            .toLowerCase()
+                            .includes(interestSearch.toLowerCase()),
+                        )
+                        .map((interest) => {
+                          const currentInterests = filters.interests || [];
+                          const isSelected = currentInterests.includes(
+                            interest.value,
+                          );
+
+                          return (
+                            <TouchableOpacity
+                              key={interest.id}
+                              style={[
+                                styles.dropdownOption,
+                                isSelected && styles.dropdownOptionSelected,
+                              ]}
+                              onPress={() => {
+                                const newInterests = isSelected
+                                  ? currentInterests.filter(
+                                      (i: string) => i !== interest.value,
+                                    )
+                                  : [...currentInterests, interest.value];
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  interests: newInterests,
+                                }));
+                              }}
+                            >
+                              <Text
+                                style={[
+                                  styles.dropdownOptionLabel,
+                                  isSelected &&
+                                    styles.dropdownOptionLabelSelected,
+                                ]}
+                              >
+                                {interest.label}
+                              </Text>
+                              {isSelected && (
+                                <Check size={18} color="#3AFF6E" />
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
             )}
           </ScrollView>
@@ -288,6 +479,70 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  dropdownTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#f9f9f9',
+  },
+  dropdownTextContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
+  dropdownValue: {
+    fontSize: 16,
+    color: '#1A1A1A',
+  },
+  dropdownPlaceholder: {
+    color: '#999',
+  },
+  dropdownMenu: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  dropdownScroll: {
+    maxHeight: 220,
+  },
+  dropdownSearchInput: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    backgroundColor: '#fafafa',
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  dropdownOptionSelected: {
+    backgroundColor: '#F0FFF7',
+  },
+  dropdownOptionLabel: {
+    fontSize: 15,
+    color: '#1A1A1A',
+  },
+  dropdownOptionLabelSelected: {
+    fontWeight: '600',
+    color: '#1A8F4D',
   },
 });
 

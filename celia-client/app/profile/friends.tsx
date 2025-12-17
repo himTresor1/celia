@@ -157,7 +157,9 @@ export default function FriendsListScreen() {
 
   const renderFriend = ({ item }: any) => {
     const friend = item.friend;
-    const rating = apiHelpers.displayRating(friend.attractiveness_score);
+    const rating = apiHelpers.displayRating(
+      friend.attractivenessScore ?? friend.attractiveness_score ?? 0
+    );
     const isSelected = selectedUsers.includes(friend.id);
 
     return (
@@ -169,7 +171,12 @@ export default function FriendsListScreen() {
           {isSelected && <Text style={styles.checkmark}>✓</Text>}
         </View>
         <Image
-          source={{ uri: friend.avatar_url || 'https://via.placeholder.com/70' }}
+          source={{
+            uri:
+              friend.avatarUrl ||
+              friend.avatar_url ||
+              'https://via.placeholder.com/70',
+          }}
           style={styles.avatar}
         />
         <View style={styles.info}>

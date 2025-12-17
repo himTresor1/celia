@@ -187,7 +187,9 @@ export default function SavedListScreen() {
     const savedUser = item.user || item.saved_user || item;
     const userId = savedUser.id || item.savedUserId || savedUser.saved_user_id;
     const rating = apiHelpers.displayRating(
-      savedUser.attractiveness_score || 0
+      savedUser.attractivenessScore ||
+        savedUser.attractiveness_score ||
+        0
     );
     const isSelected = selectedUsers.includes(userId);
 
@@ -201,17 +203,27 @@ export default function SavedListScreen() {
         </View>
         <Image
           source={{
-            uri: savedUser.avatar_url || 'https://via.placeholder.com/80',
+            uri:
+              savedUser.avatarUrl ||
+              savedUser.avatar_url ||
+              'https://via.placeholder.com/80',
           }}
           style={styles.avatar}
         />
         <View style={styles.info}>
-          <Text style={styles.name}>{savedUser.full_name}</Text>
-          <Text style={styles.college}>{savedUser.college_name}</Text>
+          <Text style={styles.name}>
+            {savedUser.full_name || savedUser.fullName}
+          </Text>
+          <Text style={styles.college}>
+            {savedUser.college_name || savedUser.collegeName}
+          </Text>
           <View style={styles.ratingRow}>
             <Text style={styles.rating}>⭐ {rating}/10</Text>
             <Text style={styles.savedDate}>
-              Saved {new Date(item.created_at).toLocaleDateString()}
+              Saved{' '}
+              {new Date(
+                item.savedAt || item.created_at
+              ).toLocaleDateString()}
             </Text>
           </View>
         </View>
@@ -288,11 +300,12 @@ export default function SavedListScreen() {
           data={savedUsers}
           renderItem={renderItem}
           keyExtractor={(item, index) => {
-            const savedUser = item.saved_user || item;
+            const savedUser = item.user || item.saved_user || item;
             return (
               savedUser.id ||
-              savedUser.saved_user_id ||
               item.id ||
+              savedUser.saved_user_id ||
+              item.savedUserId ||
               `saved-${index}`
             );
           }}

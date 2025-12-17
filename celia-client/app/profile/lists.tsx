@@ -38,11 +38,22 @@ export default function MyListsScreen() {
         apiHelpers.getFriends(user.id),
         apiHelpers.getInvitees(user.id),
       ]);
+      
+      const savedData = savedResult.data;
+      const savedItems = Array.isArray(savedData)
+        ? savedData
+        : savedData?.items || [];
+      const savedCount =
+        savedData?.total ?? (savedItems ? savedItems.length : 0);
 
       setCounts({
-        saved: savedResult.data?.length || 0,
+        saved: savedCount,
         friends: friendsResult.data?.length || 0,
-        invitees: inviteesResult.data?.length || 0,
+        invitees:
+          inviteesResult.data?.total ??
+          inviteesResult.data?.length ??
+          inviteesResult.data?.items?.length ??
+          0,
       });
     } catch (error) {
       console.error('Error loading counts:', error);

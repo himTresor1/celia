@@ -25,6 +25,7 @@ import {
   Users,
   Heart,
   Save,
+  Link,
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import WebDatePicker from '@/components/WebDatePicker';
@@ -67,6 +68,8 @@ export default function CreateScreen() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [capacityLimit, setCapacityLimit] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [externalLink, setExternalLink] = useState('');
+  const [externalLinkType, setExternalLinkType] = useState<string>('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
@@ -240,6 +243,8 @@ export default function CreateScreen() {
         capacityLimit: capacityLimit ? parseInt(capacityLimit) : null,
         isPublic,
         photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+        externalLink: externalLink.trim() || undefined,
+        externalLinkType: externalLink.trim() && externalLinkType ? externalLinkType : undefined,
       };
 
       const createdEvent = await api.createEvent(eventData);
@@ -278,6 +283,8 @@ export default function CreateScreen() {
     setSelectedInterests([]);
     setCapacityLimit('');
     setIsPublic(false);
+    setExternalLink('');
+    setExternalLinkType('');
     setStep(1);
   };
 
@@ -428,6 +435,42 @@ export default function CreateScreen() {
               </View>
               <Text style={styles.helperText}>
                 Map integration coming soon!
+              </Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>External Link (Optional)</Text>
+              <View style={styles.iconInput}>
+                <Link size={20} color="#666" />
+                <TextInput
+                  style={styles.iconInputField}
+                  placeholder="e.g., Google Form, Eventbrite, WhatsApp group"
+                  value={externalLink}
+                  onChangeText={(text) => {
+                    setExternalLink(text);
+                    // Auto-detect link type
+                    const lowerText = text.toLowerCase();
+                    if (lowerText.includes('forms.google.com') || lowerText.includes('docs.google.com/forms')) {
+                      setExternalLinkType('google_form');
+                    } else if (lowerText.includes('eventbrite')) {
+                      setExternalLinkType('eventbrite');
+                    } else if (lowerText.includes('whatsapp') || lowerText.includes('wa.me') || lowerText.includes('chat.whatsapp.com')) {
+                      setExternalLinkType('whatsapp');
+                    } else if (text.trim() && (lowerText.startsWith('http://') || lowerText.startsWith('https://'))) {
+                      setExternalLinkType('website');
+                    } else if (!text.trim()) {
+                      setExternalLinkType('');
+                    } else {
+                      setExternalLinkType('other');
+                    }
+                  }}
+                  keyboardType="url"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+              <Text style={styles.helperText}>
+                Add a link to Google Forms, Eventbrite, WhatsApp group, or any other external resource
               </Text>
             </View>
           </View>
@@ -626,6 +669,14 @@ export default function CreateScreen() {
                 <Text style={styles.summaryLabel}>Photos:</Text>
                 <Text style={styles.summaryValue}>{photoUrls.length}</Text>
               </View>
+              {externalLink.trim() && (
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>External Link:</Text>
+                  <Text style={styles.summaryValue} numberOfLines={1}>
+                    {externalLink}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         )}
