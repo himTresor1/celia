@@ -8,6 +8,8 @@ import {
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { SendSignupOtpDto } from './dto/send-signup-otp.dto';
+import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
@@ -52,6 +54,34 @@ export class AuthController {
   })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('send-signup-otp')
+  @ApiOperation({ summary: 'Send OTP for signup' })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  sendSignupOtp(@Body() dto: SendSignupOtpDto) {
+    return this.authService.sendSignupOtp(dto);
+  }
+
+  @Post('verify-signup-otp')
+  @ApiOperation({ summary: 'Verify signup OTP' })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP verified successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired OTP',
+  })
+  verifySignupOtp(@Body() dto: VerifySignupOtpDto) {
+    return this.authService.verifySignupOtp(dto);
   }
 
   @Get('me')

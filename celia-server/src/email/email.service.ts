@@ -204,5 +204,137 @@ export class EmailService {
       </html>
     `;
   }
+
+  async sendSignupOtpEmail(to: string, code: string): Promise<boolean> {
+    const from = this.configService.get<string>('EMAIL_FROM') || 'tresoramizero1@gmail.com';
+    const fromName = this.configService.get<string>('EMAIL_FROM_NAME') || 'CELIA';
+
+    const msg = {
+      to,
+      from: {
+        email: from,
+        name: fromName,
+      },
+      subject: 'Verify your CELIA account',
+      html: this.getSignupOtpEmailTemplate(code),
+    };
+
+    try {
+      await sgMail.send(msg);
+      this.logger.log(`✅ Signup OTP email sent to ${to}`);
+      return true;
+    } catch (error: any) {
+      this.logger.error(`❌ Failed to send OTP email to ${to}:`, error.message);
+      if (error.response) {
+        this.logger.error('SendGrid error details:', error.response.body);
+      }
+      return false;
+    }
+  }
+
+  private getSignupOtpEmailTemplate(code: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+              line-height: 1.6; 
+              color: #333; 
+              margin: 0; 
+              padding: 0; 
+              background-color: #f4f4f4;
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 0 auto; 
+              background: #ffffff;
+            }
+            .header { 
+              background: linear-gradient(135deg, #3AFF6E 0%, #2ECC71 100%); 
+              color: white; 
+              padding: 40px 20px; 
+              text-align: center; 
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 28px;
+              font-weight: 700;
+            }
+            .content { 
+              padding: 40px 30px; 
+            }
+            .greeting {
+              font-size: 18px;
+              margin-bottom: 20px;
+            }
+            .otp-box {
+              background: #f9f9f9;
+              border: 2px dashed #3AFF6E;
+              padding: 30px;
+              margin: 30px 0;
+              border-radius: 8px;
+              text-align: center;
+            }
+            .otp-code {
+              font-size: 36px;
+              font-weight: 700;
+              color: #1a1a1a;
+              letter-spacing: 8px;
+              font-family: 'Courier New', monospace;
+            }
+            .footer {
+              background: #f9f9f9;
+              padding: 20px;
+              text-align: center;
+              color: #666;
+              font-size: 14px;
+            }
+            .warning {
+              background: #fff3cd;
+              border-left: 4px solid #ffc107;
+              padding: 15px;
+              margin: 20px 0;
+              border-radius: 4px;
+              color: #856404;
+              font-size: 14px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Verify Your Account</h1>
+            </div>
+            <div class="content">
+              <p class="greeting">Hi there!</p>
+              <p>Thank you for signing up for CELIA! Please use the verification code below to complete your registration:</p>
+              
+              <div class="otp-box">
+                <div class="otp-code">${code}</div>
+              </div>
+
+              <div class="warning">
+                <strong>⚠️ Important:</strong> This code will expire in 10 minutes. If you didn't request this code, please ignore this email.
+              </div>
+
+              <p style="margin-top: 30px; color: #666; font-size: 14px;">
+                Enter this code in the app to verify your email address and complete your profile setup.
+              </p>
+            </div>
+            <div class="footer">
+              <p>This verification code was sent by CELIA - Your college event platform</p>
+              <p style="margin-top: 10px; font-size: 12px; color: #999;">
+                If you didn't sign up for CELIA, you can safely ignore this email.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
 }
 

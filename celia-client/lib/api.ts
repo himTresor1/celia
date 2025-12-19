@@ -428,6 +428,26 @@ class ApiClient {
     const response = await this.client.get('/notifications/unread-count');
     return response.data?.data || response.data;
   }
+
+  async sendSignupOtp(email: string) {
+    try {
+      const response = await this.client.post('/auth/send-signup-otp', { email });
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Send signup OTP error:', error);
+      throw error;
+    }
+  }
+
+  async verifySignupOtp(email: string, code: string) {
+    try {
+      const response = await this.client.post('/auth/verify-signup-otp', { email, code });
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Verify signup OTP error:', error);
+      throw error;
+    }
+  }
 }
 
 export const api = new ApiClient();

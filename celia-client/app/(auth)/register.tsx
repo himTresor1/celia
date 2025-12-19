@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 import { Mail, Lock } from 'lucide-react-native';
 import { Colors, BorderRadius, SharedStyles } from '@/constants/theme';
 
@@ -55,31 +56,83 @@ export default function RegisterScreen() {
 
     setLoading(true);
 
-    const { error: signUpError } = await signUp(
-      email,
-      password,
-      fullName || email.split('@')[0]
-    );
+    try {
+      // First, register the user
+      const { error: signUpError } = await signUp(
+        email,
+        password,
+        fullName || email.split('@')[0]
+      );
 
-    setLoading(false);
+      if (signUpError) {
+        setError(signUpError.message);
+        setLoading(false);
+        return;
+      }
 
-    if (signUpError) {
-      setError(signUpError.message);
-    } else {
-      // Redirect to profile setup after successful registration
-      // The _layout.tsx will handle redirecting to dashboard if profile is already completed
-      router.replace('/profile-setup');
+      // After successful registration, explicitly call the API to send OTP
+      // This makes the API call visible in the network tab
+      try {
+        await api.sendSignupOtp(email);
+        // Switch to verification step after OTP is sent
+        setStep('verification');
+      } catch (otpError: any) {
+        setError(
+          otpError.response?.data?.message ||
+            otpError.message ||
+            'Failed to send verification code'
+        );
+      }
+
+      setLoading(false);
+    } catch (err: any) {
+      setError(err.message || 'Registration failed');
+      setLoading(false);
     }
   };
 
   const handleVerifyCode = async () => {
-    // After verification, redirect to profile setup
-    // The _layout.tsx will handle redirecting to dashboard if profile is already completed
-    router.replace('/profile-setup');
+    setError(null);
+
+    if (!verificationCode.trim() || verificationCode.length !== 6) {
+      setError('Please enter a valid 6-digit code');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await api.verifySignupOtp(email, verificationCode);
+
+      // After successful verification, redirect to profile setup
+      // The _layout.tsx will handle redirecting to dashboard if profile is already completed
+      router.replace('/profile-setup');
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          'Invalid verification code'
+      );
+      setLoading(false);
+    }
   };
 
   const handleResendCode = async () => {
-    setError('Verification not implemented yet');
+    setError(null);
+    setLoading(true);
+
+    try {
+      await api.sendSignupOtp(email);
+      setVerificationCode('');
+      // Show success message or alert
+      setError(null);
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message || err.message || 'Failed to resend code'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -183,15 +236,18 @@ export default function RegisterScreen() {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Verification Code *</Text>
-                <TextInput
-                  style={styles.inputField}
-                  placeholder="Enter 6-digit code"
-                  value={verificationCode}
-                  onChangeText={setVerificationCode}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  editable={!loading}
-                />
+                <View style={SharedStyles.input}>
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="Enter 6-digit code"
+                    value={verificationCode}
+                    onChangeText={setVerificationCode}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    editable={!loading}
+                    placeholderTextColor={Colors.textLight}
+                  />
+                </View>
               </View>
 
               <TouchableOpacity
@@ -221,22 +277,6 @@ export default function RegisterScreen() {
                 disabled={loading}
               >
                 <Text style={styles.linkText}>Change Email</Text>
-              </TouchableOpacity>
-
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>Development Only</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <TouchableOpacity
-                style={styles.skipButton}
-                onPress={() => router.replace('/profile-setup')}
-                disabled={loading}
-              >
-                <Text style={styles.skipButtonText}>
-                  Skip Verification (Testing)
-                </Text>
               </TouchableOpacity>
             </>
           )}
