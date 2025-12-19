@@ -23,6 +23,7 @@ model User {
   avatarUrl           String?   @map("avatar_url")
   photoUrls           Json      @default("[]") @map("photo_urls")
   interests           String[]  @default([])
+  emailVerified       Boolean   @default(false) @map("email_verified")
   collegeVerified     Boolean   @default(false) @map("college_verified")
   preferredLocations  String[]  @default([]) @map("preferred_locations")
   preferredCityIds    String[]  @default([]) @map("preferred_city_ids")
@@ -137,6 +138,7 @@ model Event {
   locationName       String?   @map("location_name")
   locationLat        Float?    @map("location_lat")
   locationLng        Float?    @map("location_lng")
+  exactLocation      String?   @map("exact_location")
   eventDate          DateTime? @map("event_date") @db.Date
   startTime          DateTime? @map("start_time")
   endTime            DateTime? @map("end_time")
@@ -277,4 +279,21 @@ model Notification {
   @@index([read])
   @@index([createdAt])
   @@map("notifications")
+}
+
+model Otp {
+  id          String   @id @default(uuid())
+  email       String
+  code        String   // 6-digit OTP code
+  type        String   // 'signup', 'college_verification'
+  verified    Boolean  @default(false)
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  verifiedAt  DateTime? @map("verified_at")
+  
+  @@index([email])
+  @@index([code])
+  @@index([type])
+  @@index([expiresAt])
+  @@map("otps")
 }

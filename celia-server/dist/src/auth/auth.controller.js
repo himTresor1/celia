@@ -24,6 +24,9 @@ let AuthController = class AuthController {
     constructor(authService) {
         this.authService = authService;
     }
+    sendSignupOtp(dto) {
+        return this.authService.sendSignupOtp(dto.email);
+    }
     register(dto) {
         return this.authService.register(dto);
     }
@@ -35,6 +38,18 @@ let AuthController = class AuthController {
     }
 };
 exports.AuthController = AuthController;
+__decorate([
+    (0, common_1.Post)('send-signup-otp'),
+    (0, swagger_1.ApiOperation)({ summary: 'Send OTP code for signup' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'OTP sent successfully',
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "sendSignupOtp", null);
 __decorate([
     (0, common_1.Post)('register'),
     (0, swagger_1.ApiOperation)({ summary: 'Register a new user' }),

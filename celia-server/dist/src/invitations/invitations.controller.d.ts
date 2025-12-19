@@ -7,16 +7,16 @@ export declare class InvitationsController {
     constructor(invitationsService: InvitationsService);
     create(user: any, dto: CreateInvitationDto): Promise<{
         event: {
-            host: {
-                id: string;
-                fullName: string;
-                avatarUrl: string;
-            };
             category: {
                 id: string;
                 createdAt: Date;
                 name: string;
                 icon: string | null;
+            };
+            host: {
+                id: string;
+                fullName: string;
+                avatarUrl: string;
             };
         } & {
             id: string;
@@ -30,6 +30,7 @@ export declare class InvitationsController {
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
@@ -87,6 +88,12 @@ export declare class InvitationsController {
     }>;
     findMyInvitations(user: any, status?: string): Promise<({
         event: {
+            category: {
+                id: string;
+                createdAt: Date;
+                name: string;
+                icon: string | null;
+            };
             _count: {
                 attendees: number;
             };
@@ -95,12 +102,6 @@ export declare class InvitationsController {
                 fullName: string;
                 collegeName: string;
                 avatarUrl: string;
-            };
-            category: {
-                id: string;
-                createdAt: Date;
-                name: string;
-                icon: string | null;
             };
         } & {
             id: string;
@@ -114,6 +115,7 @@ export declare class InvitationsController {
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
@@ -164,16 +166,16 @@ export declare class InvitationsController {
     })[]>;
     updateStatus(id: string, user: any, dto: UpdateInvitationDto): Promise<{
         event: {
-            host: {
-                id: string;
-                fullName: string;
-                avatarUrl: string;
-            };
             category: {
                 id: string;
                 createdAt: Date;
                 name: string;
                 icon: string | null;
+            };
+            host: {
+                id: string;
+                fullName: string;
+                avatarUrl: string;
             };
         } & {
             id: string;
@@ -187,6 +189,7 @@ export declare class InvitationsController {
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;

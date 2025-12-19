@@ -13,10 +13,12 @@ exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const scoring_service_1 = require("../scoring/scoring.service");
+const otp_service_1 = require("../otp/otp.service");
 let UsersService = class UsersService {
-    constructor(prisma, scoring) {
+    constructor(prisma, scoring, otpService) {
         this.prisma = prisma;
         this.scoring = scoring;
+        this.otpService = otpService;
     }
     async findAll(search, interests, college) {
         const where = {};
@@ -278,11 +280,41 @@ let UsersService = class UsersService {
             data: { pushToken },
         });
     }
+    async sendCollegeVerificationOtp(userId, email) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        await this.otpService.sendOtp(email, 'college_verification');
+        return { message: 'OTP sent successfully' };
+    }
+    async verifyCollegeEmail(userId, email, otpCode) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        try {
+            await this.otpService.verifyOtp(email, otpCode, 'college_verification');
+        }
+        catch (error) {
+            throw new common_1.BadRequestException('Invalid or expired OTP code');
+        }
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { collegeVerified: true },
+        });
+        return { message: 'College email verified successfully', collegeVerified: true };
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        scoring_service_1.ScoringService])
+        scoring_service_1.ScoringService,
+        otp_service_1.OtpService])
 ], UsersService);
 //# sourceMappingURL=users.service.js.map

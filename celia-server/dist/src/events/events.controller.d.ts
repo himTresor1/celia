@@ -5,17 +5,17 @@ export declare class EventsController {
     private eventsService;
     constructor(eventsService: EventsService);
     create(user: any, dto: CreateEventDto): Promise<{
-        host: {
-            id: string;
-            fullName: string;
-            collegeName: string;
-            avatarUrl: string;
-        };
         category: {
             id: string;
             createdAt: Date;
             name: string;
             icon: string | null;
+        };
+        host: {
+            id: string;
+            fullName: string;
+            collegeName: string;
+            avatarUrl: string;
         };
     } & {
         id: string;
@@ -29,6 +29,7 @@ export declare class EventsController {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -47,17 +48,17 @@ export declare class EventsController {
             declined: number;
             total: number;
         };
-        host: {
-            id: string;
-            fullName: string;
-            collegeName: string;
-            avatarUrl: string;
-        };
         category: {
             id: string;
             createdAt: Date;
             name: string;
             icon: string | null;
+        };
+        host: {
+            id: string;
+            fullName: string;
+            collegeName: string;
+            avatarUrl: string;
         };
         invitations: {
             id: string;
@@ -79,6 +80,7 @@ export declare class EventsController {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -91,6 +93,12 @@ export declare class EventsController {
         externalLinkType: string | null;
     }[]>;
     findAll(user: any, status?: string, categoryId?: string, search?: string): Promise<({
+        category: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            icon: string | null;
+        };
         _count: {
             invitations: number;
             attendees: number;
@@ -100,12 +108,6 @@ export declare class EventsController {
             fullName: string;
             collegeName: string;
             avatarUrl: string;
-        };
-        category: {
-            id: string;
-            createdAt: Date;
-            name: string;
-            icon: string | null;
         };
         invitations: {
             id: string;
@@ -144,6 +146,7 @@ export declare class EventsController {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -156,6 +159,12 @@ export declare class EventsController {
         externalLinkType: string | null;
     })[]>;
     findOne(id: string, user: any): Promise<{
+        category: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            icon: string | null;
+        };
         _count: {
             invitations: number;
             attendees: number;
@@ -167,12 +176,6 @@ export declare class EventsController {
             collegeName: string;
             major: string;
             avatarUrl: string;
-        };
-        category: {
-            id: string;
-            createdAt: Date;
-            name: string;
-            icon: string | null;
         };
         invitations: {
             id: string;
@@ -212,6 +215,7 @@ export declare class EventsController {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -224,16 +228,16 @@ export declare class EventsController {
         externalLinkType: string | null;
     }>;
     update(id: string, user: any, dto: UpdateEventDto): Promise<{
-        host: {
-            id: string;
-            fullName: string;
-            avatarUrl: string;
-        };
         category: {
             id: string;
             createdAt: Date;
             name: string;
             icon: string | null;
+        };
+        host: {
+            id: string;
+            fullName: string;
+            avatarUrl: string;
         };
     } & {
         id: string;
@@ -247,6 +251,7 @@ export declare class EventsController {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -280,6 +285,7 @@ export declare class EventsController {
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;

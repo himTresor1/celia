@@ -9,16 +9,16 @@ export declare class InvitationsService {
     constructor(prisma: PrismaService, notificationsService: NotificationsService);
     create(inviterId: string, dto: CreateInvitationDto): Promise<{
         event: {
-            host: {
-                id: string;
-                fullName: string;
-                avatarUrl: string;
-            };
             category: {
                 id: string;
                 createdAt: Date;
                 name: string;
                 icon: string | null;
+            };
+            host: {
+                id: string;
+                fullName: string;
+                avatarUrl: string;
             };
         } & {
             id: string;
@@ -32,6 +32,7 @@ export declare class InvitationsService {
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
@@ -89,6 +90,12 @@ export declare class InvitationsService {
     }>;
     findMyInvitations(userId: string, status?: string): Promise<({
         event: {
+            category: {
+                id: string;
+                createdAt: Date;
+                name: string;
+                icon: string | null;
+            };
             _count: {
                 attendees: number;
             };
@@ -97,12 +104,6 @@ export declare class InvitationsService {
                 fullName: string;
                 collegeName: string;
                 avatarUrl: string;
-            };
-            category: {
-                id: string;
-                createdAt: Date;
-                name: string;
-                icon: string | null;
             };
         } & {
             id: string;
@@ -116,6 +117,7 @@ export declare class InvitationsService {
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
@@ -166,16 +168,16 @@ export declare class InvitationsService {
     })[]>;
     updateStatus(id: string, userId: string, dto: UpdateInvitationDto): Promise<{
         event: {
-            host: {
-                id: string;
-                fullName: string;
-                avatarUrl: string;
-            };
             category: {
                 id: string;
                 createdAt: Date;
                 name: string;
                 icon: string | null;
+            };
+            host: {
+                id: string;
+                fullName: string;
+                avatarUrl: string;
             };
         } & {
             id: string;
@@ -189,6 +191,7 @@ export declare class InvitationsService {
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;

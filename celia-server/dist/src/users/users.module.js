@@ -12,12 +12,13 @@ const users_service_1 = require("./users.service");
 const users_controller_1 = require("./users.controller");
 const prisma_module_1 = require("../prisma/prisma.module");
 const scoring_module_1 = require("../scoring/scoring.module");
+const otp_module_1 = require("../otp/otp.module");
 let UsersModule = class UsersModule {
 };
 exports.UsersModule = UsersModule;
 exports.UsersModule = UsersModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule, scoring_module_1.ScoringModule],
+        imports: [prisma_module_1.PrismaModule, scoring_module_1.ScoringModule, otp_module_1.OtpModule],
         controllers: [users_controller_1.UsersController],
         providers: [users_service_1.UsersService],
         exports: [users_service_1.UsersService],

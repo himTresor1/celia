@@ -66,6 +66,14 @@ export class CreateEventDto {
   locationLng?: number;
 
   @ApiPropertyOptional({
+    example: 'ChIJIQBpAG2ahYAR_6128GcTUEo',
+    description: 'Google Maps Place ID (most reliable for exact location). Get this from Places API when user searches or selects location.',
+  })
+  @IsOptional()
+  @IsString()
+  exactLocation?: string;
+
+  @ApiPropertyOptional({
     example: '2024-12-25',
     description: 'Event date (YYYY-MM-DD)',
   })

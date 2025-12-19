@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Param,
   Patch,
   Body,
@@ -136,5 +137,31 @@ export class UsersController {
     @Body() dto: { pushToken: string },
   ) {
     return this.usersService.updatePushToken(user.id, dto.pushToken);
+  }
+
+  @Post('send-college-verification-otp')
+  @ApiOperation({ summary: 'Send OTP for college email verification' })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully',
+  })
+  sendCollegeVerificationOtp(
+    @CurrentUser() user: any,
+    @Body() dto: { email: string },
+  ) {
+    return this.usersService.sendCollegeVerificationOtp(user.id, dto.email);
+  }
+
+  @Post('verify-college-email')
+  @ApiOperation({ summary: 'Verify college email with OTP' })
+  @ApiResponse({
+    status: 200,
+    description: 'College email verified successfully',
+  })
+  verifyCollegeEmail(
+    @CurrentUser() user: any,
+    @Body() dto: { email: string; otpCode: string },
+  ) {
+    return this.usersService.verifyCollegeEmail(user.id, dto.email, dto.otpCode);
   }
 }

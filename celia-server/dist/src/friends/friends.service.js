@@ -72,6 +72,193 @@ let FriendsService = class FriendsService {
             pages: Math.ceil(total / limit),
         };
     }
+    async sendFriendRequest(fromUserId, toUserId, message) {
+        if (fromUserId === toUserId) {
+            throw new common_1.BadRequestException('Cannot send friend request to yourself');
+        }
+        const [user1Id, user2Id] = [fromUserId, toUserId].sort();
+        const existingFriendship = await this.prisma.friendship.findUnique({
+            where: { user1Id_user2Id: { user1Id, user2Id } },
+        });
+        if (existingFriendship) {
+            if (existingFriendship.status === 'active') {
+                throw new common_1.BadRequestException('You are already friends with this user');
+            }
+            if (existingFriendship.status === 'pending') {
+                throw new common_1.BadRequestException('Friend request already exists');
+            }
+        }
+        const friendship = await this.prisma.friendship.upsert({
+            where: { user1Id_user2Id: { user1Id, user2Id } },
+            update: {
+                status: 'pending',
+                initiatedBy: fromUserId,
+                requestMessage: message,
+                connectionMethod: 'friend_request',
+            },
+            create: {
+                user1Id,
+                user2Id,
+                status: 'pending',
+                initiatedBy: fromUserId,
+                requestMessage: message,
+                connectionMethod: 'friend_request',
+            },
+            include: {
+                user1: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        avatarUrl: true,
+                        collegeName: true,
+                    },
+                },
+                user2: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        avatarUrl: true,
+                        collegeName: true,
+                    },
+                },
+                initiator: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+        });
+        return friendship;
+    }
+    async acceptFriendRequest(userId, requestId) {
+        const friendship = await this.prisma.friendship.findUnique({
+            where: { id: requestId },
+            include: {
+                user1: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        avatarUrl: true,
+                        collegeName: true,
+                    },
+                },
+                user2: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        avatarUrl: true,
+                        collegeName: true,
+                    },
+                },
+            },
+        });
+        if (!friendship) {
+            throw new common_1.NotFoundException('Friend request not found');
+        }
+        if (friendship.user1Id !== userId && friendship.user2Id !== userId) {
+            throw new common_1.BadRequestException('This friend request is not for you');
+        }
+        if (friendship.status !== 'pending') {
+            throw new common_1.BadRequestException('Friend request is not pending');
+        }
+        const updated = await this.prisma.friendship.update({
+            where: { id: requestId },
+            data: {
+                status: 'active',
+                completedAt: new Date(),
+            },
+            include: {
+                user1: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        avatarUrl: true,
+                        collegeName: true,
+                    },
+                },
+                user2: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        avatarUrl: true,
+                        collegeName: true,
+                    },
+                },
+            },
+        });
+        await this.scoring.logEngagement(friendship.user1Id, 'friend_add', 20);
+        await this.scoring.logEngagement(friendship.user2Id, 'friend_add', 20);
+        return updated;
+    }
+    async declineFriendRequest(userId, requestId) {
+        const friendship = await this.prisma.friendship.findUnique({
+            where: { id: requestId },
+        });
+        if (!friendship) {
+            throw new common_1.NotFoundException('Friend request not found');
+        }
+        if (friendship.user1Id !== userId && friendship.user2Id !== userId) {
+            throw new common_1.BadRequestException('This friend request is not for you');
+        }
+        if (friendship.status !== 'pending') {
+            throw new common_1.BadRequestException('Friend request is not pending');
+        }
+        await this.prisma.friendship.delete({
+            where: { id: requestId },
+        });
+    }
+    async getFriendRequests(userId, type = 'received') {
+        const where = {
+            status: 'pending',
+        };
+        if (type === 'sent') {
+            where.initiatedBy = userId;
+        }
+        else {
+            where.OR = [
+                { user1Id: userId, initiatedBy: { not: userId } },
+                { user2Id: userId, initiatedBy: { not: userId } },
+            ];
+        }
+        const friendships = await this.prisma.friendship.findMany({
+            where,
+            include: {
+                user1: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        avatarUrl: true,
+                        collegeName: true,
+                    },
+                },
+                user2: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        avatarUrl: true,
+                        collegeName: true,
+                    },
+                },
+                initiator: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        avatarUrl: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        return friendships.map((f) => ({
+            id: f.id,
+            otherUser: f.user1Id === userId ? f.user2 : f.user1,
+            initiator: f.initiator,
+            requestMessage: f.requestMessage,
+            createdAt: f.createdAt,
+            sentByMe: f.initiatedBy === userId,
+        }));
+    }
     async getPendingRequests(userId) {
         const friendships = await this.prisma.friendship.findMany({
             where: {

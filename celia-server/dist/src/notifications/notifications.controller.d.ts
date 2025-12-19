@@ -11,8 +11,8 @@ export declare class NotificationsController {
             data: import("@prisma/client/runtime/library").JsonValue | null;
             type: string;
             title: string;
-            userId: string;
             message: string;
+            userId: string;
             read: boolean;
             readAt: Date | null;
         }[];
@@ -34,8 +34,8 @@ export declare class NotificationsController {
         data: import("@prisma/client/runtime/library").JsonValue | null;
         type: string;
         title: string;
-        userId: string;
         message: string;
+        userId: string;
         read: boolean;
         readAt: Date | null;
     }>;

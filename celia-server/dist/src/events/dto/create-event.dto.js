@@ -74,6 +74,15 @@ __decorate([
 ], CreateEventDto.prototype, "locationLng", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
+        example: 'ChIJIQBpAG2ahYAR_6128GcTUEo',
+        description: 'Google Maps Place ID (most reliable for exact location). Get this from Places API when user searches or selects location.',
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateEventDto.prototype, "exactLocation", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
         example: '2024-12-25',
         description: 'Event date (YYYY-MM-DD)',
     }),

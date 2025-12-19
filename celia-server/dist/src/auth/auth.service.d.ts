@@ -2,11 +2,18 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { OtpService } from '../otp/otp.service';
 export declare class AuthService {
     private prisma;
     private jwtService;
-    constructor(prisma: PrismaService, jwtService: JwtService);
-    register(dto: RegisterDto): Promise<{
+    private otpService;
+    constructor(prisma: PrismaService, jwtService: JwtService, otpService: OtpService);
+    sendSignupOtp(email: string): Promise<{
+        message: string;
+    }>;
+    register(dto: RegisterDto & {
+        otpCode?: string;
+    }): Promise<{
         user: {
             id: string;
             email: string;
@@ -41,6 +48,7 @@ export declare class AuthService {
             avatarUrl: string | null;
             photoUrls: import("@prisma/client/runtime/library").JsonValue;
             interests: string[];
+            emailVerified: boolean;
             collegeVerified: boolean;
             preferredLocations: string[];
             preferredCityIds: string[];

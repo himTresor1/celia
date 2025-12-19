@@ -1,10 +1,12 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ScoringService } from '../scoring/scoring.service';
+import { OtpService } from '../otp/otp.service';
 export declare class UsersService {
     private prisma;
     private scoring;
-    constructor(prisma: PrismaService, scoring: ScoringService);
+    private otpService;
+    constructor(prisma: PrismaService, scoring: ScoringService, otpService: OtpService);
     findAll(search?: string, interests?: string[], college?: string): Promise<{
         id: string;
         email: string;
@@ -93,15 +95,15 @@ export declare class UsersService {
         socialStreakDays: number;
     }>;
     getUserEvents(userId: string, type?: 'hosted' | 'attending'): Promise<({
-        _count: {
-            invitations: number;
-            attendees: number;
-        };
         category: {
             id: string;
             createdAt: Date;
             name: string;
             icon: string | null;
+        };
+        _count: {
+            invitations: number;
+            attendees: number;
         };
     } & {
         id: string;
@@ -115,6 +117,7 @@ export declare class UsersService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -126,6 +129,12 @@ export declare class UsersService {
         externalLink: string | null;
         externalLinkType: string | null;
     })[] | ({
+        category: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            icon: string | null;
+        };
         _count: {
             attendees: number;
         };
@@ -133,12 +142,6 @@ export declare class UsersService {
             id: string;
             fullName: string;
             avatarUrl: string;
-        };
-        category: {
-            id: string;
-            createdAt: Date;
-            name: string;
-            icon: string | null;
         };
     } & {
         id: string;
@@ -152,6 +155,7 @@ export declare class UsersService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -179,6 +183,7 @@ export declare class UsersService {
         avatarUrl: string | null;
         photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interests: string[];
+        emailVerified: boolean;
         collegeVerified: boolean;
         preferredLocations: string[];
         preferredCityIds: string[];
@@ -192,5 +197,12 @@ export declare class UsersService {
         createdAt: Date;
         updatedAt: Date;
         pushToken: string | null;
+    }>;
+    sendCollegeVerificationOtp(userId: string, email: string): Promise<{
+        message: string;
+    }>;
+    verifyCollegeEmail(userId: string, email: string, otpCode: string): Promise<{
+        message: string;
+        collegeVerified: boolean;
     }>;
 }

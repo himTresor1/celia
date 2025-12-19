@@ -5,17 +5,17 @@ export declare class EventsService {
     private prisma;
     constructor(prisma: PrismaService);
     create(userId: string, dto: CreateEventDto): Promise<{
-        host: {
-            id: string;
-            fullName: string;
-            collegeName: string;
-            avatarUrl: string;
-        };
         category: {
             id: string;
             createdAt: Date;
             name: string;
             icon: string | null;
+        };
+        host: {
+            id: string;
+            fullName: string;
+            collegeName: string;
+            avatarUrl: string;
         };
     } & {
         id: string;
@@ -29,6 +29,7 @@ export declare class EventsService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -41,6 +42,12 @@ export declare class EventsService {
         externalLinkType: string | null;
     }>;
     findAll(userId: string, status?: string, categoryId?: string, search?: string): Promise<({
+        category: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            icon: string | null;
+        };
         _count: {
             invitations: number;
             attendees: number;
@@ -50,12 +57,6 @@ export declare class EventsService {
             fullName: string;
             collegeName: string;
             avatarUrl: string;
-        };
-        category: {
-            id: string;
-            createdAt: Date;
-            name: string;
-            icon: string | null;
         };
         invitations: {
             id: string;
@@ -94,6 +95,7 @@ export declare class EventsService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -112,17 +114,17 @@ export declare class EventsService {
             declined: number;
             total: number;
         };
-        host: {
-            id: string;
-            fullName: string;
-            collegeName: string;
-            avatarUrl: string;
-        };
         category: {
             id: string;
             createdAt: Date;
             name: string;
             icon: string | null;
+        };
+        host: {
+            id: string;
+            fullName: string;
+            collegeName: string;
+            avatarUrl: string;
         };
         invitations: {
             id: string;
@@ -144,6 +146,7 @@ export declare class EventsService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -156,6 +159,12 @@ export declare class EventsService {
         externalLinkType: string | null;
     }[]>;
     findOne(id: string, userId: string): Promise<{
+        category: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            icon: string | null;
+        };
         _count: {
             invitations: number;
             attendees: number;
@@ -167,12 +176,6 @@ export declare class EventsService {
             collegeName: string;
             major: string;
             avatarUrl: string;
-        };
-        category: {
-            id: string;
-            createdAt: Date;
-            name: string;
-            icon: string | null;
         };
         invitations: {
             id: string;
@@ -212,6 +215,7 @@ export declare class EventsService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -224,16 +228,16 @@ export declare class EventsService {
         externalLinkType: string | null;
     }>;
     update(id: string, userId: string, dto: UpdateEventDto): Promise<{
-        host: {
-            id: string;
-            fullName: string;
-            avatarUrl: string;
-        };
         category: {
             id: string;
             createdAt: Date;
             name: string;
             icon: string | null;
+        };
+        host: {
+            id: string;
+            fullName: string;
+            avatarUrl: string;
         };
     } & {
         id: string;
@@ -247,6 +251,7 @@ export declare class EventsService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -280,6 +285,7 @@ export declare class EventsService {
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;

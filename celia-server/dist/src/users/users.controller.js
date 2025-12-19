@@ -42,6 +42,12 @@ let UsersController = class UsersController {
     updatePushToken(user, dto) {
         return this.usersService.updatePushToken(user.id, dto.pushToken);
     }
+    sendCollegeVerificationOtp(user, dto) {
+        return this.usersService.sendCollegeVerificationOtp(user.id, dto.email);
+    }
+    verifyCollegeEmail(user, dto) {
+        return this.usersService.verifyCollegeEmail(user.id, dto.email, dto.otpCode);
+    }
 };
 exports.UsersController = UsersController;
 __decorate([
@@ -159,6 +165,32 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "updatePushToken", null);
+__decorate([
+    (0, common_1.Post)('send-college-verification-otp'),
+    (0, swagger_1.ApiOperation)({ summary: 'Send OTP for college email verification' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'OTP sent successfully',
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "sendCollegeVerificationOtp", null);
+__decorate([
+    (0, common_1.Post)('verify-college-email'),
+    (0, swagger_1.ApiOperation)({ summary: 'Verify college email with OTP' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'College email verified successfully',
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "verifyCollegeEmail", null);
 exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('Users'),
     (0, common_1.Controller)('users'),

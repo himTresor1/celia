@@ -14,10 +14,22 @@ const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const bcrypt = require("bcrypt");
 const prisma_service_1 = require("../prisma/prisma.service");
+const otp_service_1 = require("../otp/otp.service");
 let AuthService = class AuthService {
-    constructor(prisma, jwtService) {
+    constructor(prisma, jwtService, otpService) {
         this.prisma = prisma;
         this.jwtService = jwtService;
+        this.otpService = otpService;
+    }
+    async sendSignupOtp(email) {
+        const existingUser = await this.prisma.user.findUnique({
+            where: { email },
+        });
+        if (existingUser) {
+            throw new common_1.ConflictException('User with this email already exists');
+        }
+        await this.otpService.sendOtp(email, 'signup');
+        return { message: 'OTP sent successfully' };
     }
     async register(dto) {
         console.log('[AUTH] Register attempt:', { email: dto.email, fullName: dto.fullName });
@@ -27,6 +39,14 @@ let AuthService = class AuthService {
         if (existingUser) {
             console.log('[AUTH] Register failed - User exists:', dto.email);
             throw new common_1.ConflictException('User with this email already exists');
+        }
+        if (dto.otpCode) {
+            try {
+                await this.otpService.verifyOtp(dto.email, dto.otpCode, 'signup');
+            }
+            catch (error) {
+                throw new common_1.BadRequestException('Invalid or expired OTP code');
+            }
         }
         const hashedPassword = await bcrypt.hash(dto.password, 10);
         console.log('[AUTH] Password hashed successfully');
@@ -40,6 +60,7 @@ let AuthService = class AuthService {
                     interests: [],
                     preferredLocations: [],
                     profileCompleted: false,
+                    emailVerified: !!dto.otpCode,
                 },
                 select: {
                     id: true,
@@ -131,6 +152,7 @@ exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        jwt_1.JwtService])
+        jwt_1.JwtService,
+        otp_service_1.OtpService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

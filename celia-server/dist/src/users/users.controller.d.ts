@@ -91,15 +91,15 @@ export declare class UsersController {
         socialStreakDays: number;
     }>;
     getUserEvents(id: string, type?: 'hosted' | 'attending'): Promise<({
-        _count: {
-            invitations: number;
-            attendees: number;
-        };
         category: {
             id: string;
             createdAt: Date;
             name: string;
             icon: string | null;
+        };
+        _count: {
+            invitations: number;
+            attendees: number;
         };
     } & {
         id: string;
@@ -113,6 +113,7 @@ export declare class UsersController {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -124,6 +125,12 @@ export declare class UsersController {
         externalLink: string | null;
         externalLinkType: string | null;
     })[] | ({
+        category: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            icon: string | null;
+        };
         _count: {
             attendees: number;
         };
@@ -131,12 +138,6 @@ export declare class UsersController {
             id: string;
             fullName: string;
             avatarUrl: string;
-        };
-        category: {
-            id: string;
-            createdAt: Date;
-            name: string;
-            icon: string | null;
         };
     } & {
         id: string;
@@ -150,6 +151,7 @@ export declare class UsersController {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -179,6 +181,7 @@ export declare class UsersController {
         avatarUrl: string | null;
         photoUrls: import("@prisma/client/runtime/library").JsonValue;
         interests: string[];
+        emailVerified: boolean;
         collegeVerified: boolean;
         preferredLocations: string[];
         preferredCityIds: string[];
@@ -192,5 +195,17 @@ export declare class UsersController {
         createdAt: Date;
         updatedAt: Date;
         pushToken: string | null;
+    }>;
+    sendCollegeVerificationOtp(user: any, dto: {
+        email: string;
+    }): Promise<{
+        message: string;
+    }>;
+    verifyCollegeEmail(user: any, dto: {
+        email: string;
+        otpCode: string;
+    }): Promise<{
+        message: string;
+        collegeVerified: boolean;
     }>;
 }

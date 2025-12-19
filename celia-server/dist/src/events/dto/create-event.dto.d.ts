@@ -5,6 +5,7 @@ export declare class CreateEventDto {
     locationName?: string;
     locationLat?: number;
     locationLng?: number;
+    exactLocation?: string;
     eventDate?: string;
     startTime?: string;
     endTime?: string;

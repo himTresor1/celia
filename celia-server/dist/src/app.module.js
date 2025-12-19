@@ -24,6 +24,7 @@ const cities_module_1 = require("./cities/cities.module");
 const email_module_1 = require("./email/email.module");
 const push_module_1 = require("./push/push.module");
 const notifications_module_1 = require("./notifications/notifications.module");
+const otp_module_1 = require("./otp/otp.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -53,6 +54,7 @@ exports.AppModule = AppModule = __decorate([
             email_module_1.EmailModule,
             push_module_1.PushModule,
             notifications_module_1.NotificationsModule,
+            otp_module_1.OtpModule,
         ],
     })
 ], AppModule);

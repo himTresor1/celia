@@ -15,6 +15,7 @@ import { CitiesModule } from './cities/cities.module';
 import { EmailModule } from './email/email.module';
 import { PushModule } from './push/push.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { OtpModule } from './otp/otp.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     EmailModule,
     PushModule,
     NotificationsModule,
+    OtpModule,
   ],
 })
 export class AppModule {}

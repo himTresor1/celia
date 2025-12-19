@@ -16,6 +16,16 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @Post('send-signup-otp')
+  @ApiOperation({ summary: 'Send OTP code for signup' })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully',
+  })
+  sendSignupOtp(@Body() dto: { email: string }) {
+    return this.authService.sendSignupOtp(dto.email);
+  }
+
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({

@@ -4,6 +4,11 @@ import { LoginDto } from './dto/login.dto';
 export declare class AuthController {
     private authService;
     constructor(authService: AuthService);
+    sendSignupOtp(dto: {
+        email: string;
+    }): Promise<{
+        message: string;
+    }>;
     register(dto: RegisterDto): Promise<{
         user: {
             id: string;
@@ -39,6 +44,7 @@ export declare class AuthController {
             avatarUrl: string | null;
             photoUrls: import("@prisma/client/runtime/library").JsonValue;
             interests: string[];
+            emailVerified: boolean;
             collegeVerified: boolean;
             preferredLocations: string[];
             preferredCityIds: string[];
