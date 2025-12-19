@@ -113,7 +113,6 @@ export declare class UsersController {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
-        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -151,7 +150,6 @@ export declare class UsersController {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
-        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -194,6 +192,5 @@ export declare class UsersController {
         createdAt: Date;
         updatedAt: Date;
         pushToken: string | null;
-        emailVerified: boolean;
     }>;
 }

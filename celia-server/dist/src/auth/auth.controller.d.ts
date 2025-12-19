@@ -52,7 +52,6 @@ export declare class AuthController {
             createdAt: Date;
             updatedAt: Date;
             pushToken: string | null;
-            emailVerified: boolean;
         };
         token: string;
     }>;

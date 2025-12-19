@@ -17,13 +17,9 @@ const common_1 = require("@nestjs/common");
 const friends_service_1 = require("./friends.service");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const current_user_decorator_1 = require("../common/decorators/current-user.decorator");
-const send_pulse_dto_1 = require("./dto/send-pulse.dto");
 let FriendsController = class FriendsController {
     constructor(friendsService) {
         this.friendsService = friendsService;
-    }
-    async sendEnergyPulse(user, dto) {
-        return this.friendsService.sendEnergyPulse(user.sub, dto.toUserId);
     }
     async getFriends(user, page, limit) {
         return this.friendsService.getFriends(user.sub, page ? parseInt(page) : 1, limit ? parseInt(limit) : 50);
@@ -45,14 +41,6 @@ let FriendsController = class FriendsController {
     }
 };
 exports.FriendsController = FriendsController;
-__decorate([
-    (0, common_1.Post)('pulse'),
-    __param(0, (0, current_user_decorator_1.CurrentUser)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, send_pulse_dto_1.SendPulseDto]),
-    __metadata("design:returntype", Promise)
-], FriendsController.prototype, "sendEnergyPulse", null);
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

@@ -54,7 +54,6 @@ export declare class AuthService {
             createdAt: Date;
             updatedAt: Date;
             pushToken: string | null;
-            emailVerified: boolean;
         };
         token: string;
     }>;

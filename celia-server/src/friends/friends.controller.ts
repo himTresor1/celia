@@ -11,20 +11,11 @@ import {
 import { FriendsService } from './friends.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { SendPulseDto } from './dto/send-pulse.dto';
 
 @Controller('friends')
 @UseGuards(JwtAuthGuard)
 export class FriendsController {
   constructor(private readonly friendsService: FriendsService) {}
-
-  @Post('pulse')
-  async sendEnergyPulse(
-    @CurrentUser() user: any,
-    @Body() dto: SendPulseDto,
-  ) {
-    return this.friendsService.sendEnergyPulse(user.sub, dto.toUserId);
-  }
 
   @Get()
   async getFriends(
