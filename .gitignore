@@ -1,2 +1,7 @@
 node_modules/
 .env
+
+# TypeScript build artifacts
+*.tsbuildinfo
+dist/
+build/
