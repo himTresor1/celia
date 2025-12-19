@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Mail, Lock } from 'lucide-react-native';
@@ -46,7 +55,11 @@ export default function RegisterScreen() {
 
     setLoading(true);
 
-    const { error: signUpError } = await signUp(email, password, fullName || email.split('@')[0]);
+    const { error: signUpError } = await signUp(
+      email,
+      password,
+      fullName || email.split('@')[0]
+    );
 
     setLoading(false);
 
@@ -145,9 +158,12 @@ export default function RegisterScreen() {
               </View>
 
               <TouchableOpacity
-                style={[SharedStyles.button, loading && SharedStyles.buttonDisabled]}
+                style={[
+                  SharedStyles.button,
+                  loading && SharedStyles.buttonDisabled,
+                ]}
                 onPress={handleSendVerification}
-                disabled={loading}
+                // disabled={loading}
               >
                 <Text style={SharedStyles.buttonText}>
                   {loading ? 'Sending Code...' : 'Send Verification Code'}
@@ -176,7 +192,10 @@ export default function RegisterScreen() {
               </View>
 
               <TouchableOpacity
-                style={[SharedStyles.button, loading && SharedStyles.buttonDisabled]}
+                style={[
+                  SharedStyles.button,
+                  loading && SharedStyles.buttonDisabled,
+                ]}
                 onPress={handleVerifyCode}
                 disabled={loading}
               >
@@ -212,7 +231,9 @@ export default function RegisterScreen() {
                 onPress={() => router.replace('/(tabs)')}
                 disabled={loading}
               >
-                <Text style={styles.skipButtonText}>Skip Verification (Testing)</Text>
+                <Text style={styles.skipButtonText}>
+                  Skip Verification (Testing)
+                </Text>
               </TouchableOpacity>
             </>
           )}

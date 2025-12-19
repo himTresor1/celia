@@ -794,11 +794,11 @@ export default function ProfileSetupScreen() {
                         styles.modalSendCodeButtonDisabled,
                     ]}
                     onPress={handleSendCollegeVerificationCode}
-                    disabled={
-                      sendingCollegeOtp ||
-                      collegeEmailVerified ||
-                      !isCollegeEmailValid(collegeEmail)
-                    }
+                    // disabled={
+                    //   sendingCollegeOtp ||
+                    //   collegeEmailVerified ||
+                    //   !isCollegeEmailValid(collegeEmail)
+                    // }
                   >
                     {sendingCollegeOtp ? (
                       <ActivityIndicator size="small" color="#fff" />
