@@ -1,10 +1,12 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvitationDto, BulkInviteDto } from './dto/create-invitation.dto';
 import { UpdateInvitationDto } from './dto/update-invitation.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 export declare class InvitationsService {
     private prisma;
+    private notificationsService;
     private readonly logger;
-    constructor(prisma: PrismaService);
+    constructor(prisma: PrismaService, notificationsService: NotificationsService);
     create(inviterId: string, dto: CreateInvitationDto): Promise<{
         event: {
             host: {

@@ -135,6 +135,85 @@ async function main() {
     });
   }
 
+  // Extract cities from the comprehensive list
+  // Source: https://ontheworldmap.com/all/cities/
+  const cities = [
+    // Major US Cities
+    'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose',
+    'Austin', 'Jacksonville', 'San Francisco', 'Columbus', 'Fort Worth', 'Charlotte', 'Seattle', 'Denver', 'Washington', 'Boston',
+    'El Paso', 'Nashville', 'Detroit', 'Oklahoma City', 'Portland', 'Las Vegas', 'Memphis', 'Louisville', 'Baltimore', 'Milwaukee',
+    'Albuquerque', 'Tucson', 'Fresno', 'Sacramento', 'Kansas City', 'Mesa', 'Atlanta', 'Omaha', 'Colorado Springs', 'Raleigh',
+    'Miami', 'Long Beach', 'Virginia Beach', 'Oakland', 'Minneapolis', 'Tulsa', 'Arlington', 'Tampa', 'New Orleans', 'Wichita',
+    'Cleveland', 'Bakersfield', 'Aurora', 'Honolulu', 'Anaheim', 'Santa Ana', 'Riverside', 'Corpus Christi', 'Lexington', 'Henderson',
+    'Stockton', 'Saint Paul', 'St. Louis', 'Cincinnati', 'St. Petersburg', 'Pittsburgh', 'Greensboro', 'Lincoln', 'Anchorage', 'Plano',
+    'Orlando', 'Irvine', 'Newark', 'Durham', 'Chula Vista', 'Toledo', 'Fort Wayne', 'St. Louis', 'Chandler', 'Laredo',
+    'Norfolk', 'Madison', 'Durham', 'Lubbock', 'Buffalo', 'Jersey City', 'Chandler', 'Scottsdale', 'Glendale', 'Reno',
+    'Winston-Salem', 'North Las Vegas', 'Gilbert', 'Chesapeake', 'Birmingham', 'Fremont', 'Richmond', 'Boise', 'San Bernardino', 'Spokane',
+    'Baton Rouge', 'Des Moines', 'Modesto', 'Rochester', 'Tacoma', 'Fontana', 'Oxnard', 'Moreno Valley', 'Fayetteville', 'Yonkers',
+    'Huntington Beach', 'Glendale', 'Santa Clarita', 'Grand Rapids', 'Amarillo', 'Port St. Lucie', 'Huntsville', 'Grand Prairie', 'Brownsville', 'Overland Park',
+    'Santa Clarita', 'Providence', 'Garden Grove', 'Chattanooga', 'Oceanside', 'Jackson', 'Fort Lauderdale', 'Santa Rosa', 'Rancho Cucamonga', 'Portland',
+    'Ontario', 'Vancouver', 'Sioux Falls', 'Peoria', 'Oxnard', 'Aurora', 'Rockford', 'Elk Grove', 'Salem', 'Corona',
+    'Pembroke Pines', 'Eugene', 'Fort Collins', 'Cary', 'Santa Ana', 'Springfield', 'Lancaster', 'Salinas', 'Palmdale', 'Hayward',
+    'Pomona', 'Alexandria', 'Lakewood', 'Sunnyvale', 'Hollywood', 'Torrance', 'Naperville', 'Escondido', 'Kansas City', 'Joliet',
+    'Bridgeport', 'Savannah', 'Paterson', 'McAllen', 'Syracuse', 'Pasadena', 'Mesquite', 'Dayton', 'Fullerton', 'Orange',
+    'Olathe', 'Thornton', 'Miramar', 'Denton', 'Roseville', 'Carrollton', 'Waco', 'Surprise', 'Sterling Heights', 'Vallejo',
+    'Pasadena', 'Victorville', 'Allentown', 'Abilene', 'Norman', 'Beaumont', 'Independence', 'Evansville', 'Odessa', 'Frisco',
+    'Ann Arbor', 'Athens', 'Round Rock', 'Thousand Oaks', 'Topeka', 'Simi Valley', 'Fargo', 'Concord', 'Lakeland', 'Clovis',
+    'Columbia', 'El Monte', 'Abilene', 'Lansing', 'Downey', 'Westminster', 'Berkeley', 'Midland', 'Carlsbad', 'Richardson',
+    'Arvada', 'Richmond', 'Fairfield', 'Inglewood', 'Broken Arrow', 'Miami Gardens', 'Burbank', 'Rochester', 'Gresham', 'Daly City',
+    'Lewisville', 'Tempe', 'South Bend', 'Elgin', 'West Covina', 'Clearwater', 'Waterbury', 'Santa Clara', 'Provo', 'West Jordan',
+    'Gainesville', 'Antioch', 'Cambridge', 'Edinburg', 'Lowell', 'Pueblo', 'Lafayette', 'Lakeland', 'Wilmington', 'Arlington',
+    'Ventura', 'Everett', 'Davenport', 'Rialto', 'Tuscaloosa', 'Centennial', 'Murfreesboro', 'High Point', 'Billings', 'Richmond',
+    'Killeen', 'Sandy Springs', 'Jurupa Valley', 'Hialeah', 'Allen', 'Rio Rancho', 'Yuma', 'Spokane Valley', 'Santa Monica', 'Kenosha',
+    'El Cajon', 'Renton', 'Davenport', 'South Gate', 'Brockton', 'Las Cruces', 'Compton', 'Tyler', 'Nampa', 'Avondale',
+    'Bend', 'Fayetteville', 'San Mateo', 'Hesperia', 'Green Bay', 'Westminster', 'Santa Barbara', 'Boca Raton', 'Albany', 'Norwalk',
+    'San Angelo', 'Racine', 'Murrieta', 'Temecula', 'Sparks', 'Bellingham', 'Lakewood', 'Gary', 'Mission Viejo', 'Roswell',
+    'Lynn', 'Redding', 'Yakima', 'Turlock', 'Greenville', 'St. George', 'Boulder', 'Kennewick', 'Fall River', 'Largo',
+    'Thousand Oaks', 'Santa Monica', 'El Centro', 'Oshkosh', 'San Leandro', 'Appleton', 'Chico', 'Newton', 'Manteca', 'San Marcos',
+    'Concord', 'Hammond', 'Fargo', 'Lodi', 'Carmel', 'Bismarck', 'San Rafael', 'Woodland', 'Palo Alto', 'Redwood City',
+    'Yuba City', 'Madera', 'Santa Cruz', 'Eureka', 'Davis', 'Capitola', 'Monterey', 'Salinas', 'Watsonville', 'Hollister',
+    // Major International Cities
+    'London', 'Paris', 'Tokyo', 'Sydney', 'Melbourne', 'Toronto', 'Vancouver', 'Montreal', 'Calgary', 'Edmonton',
+    'Mexico City', 'Guadalajara', 'Monterrey', 'Buenos Aires', 'São Paulo', 'Rio de Janeiro', 'Brasília', 'Lima', 'Bogotá', 'Santiago',
+    'Madrid', 'Barcelona', 'Rome', 'Milan', 'Naples', 'Venice', 'Florence', 'Berlin', 'Munich', 'Hamburg',
+    'Frankfurt', 'Cologne', 'Amsterdam', 'Rotterdam', 'Brussels', 'Vienna', 'Zurich', 'Geneva', 'Stockholm', 'Oslo',
+    'Copenhagen', 'Helsinki', 'Dublin', 'Edinburgh', 'Glasgow', 'Manchester', 'Liverpool', 'Birmingham', 'Leeds', 'Bristol',
+    'Lisbon', 'Porto', 'Athens', 'Thessaloniki', 'Istanbul', 'Ankara', 'Dubai', 'Abu Dhabi', 'Doha', 'Riyadh',
+    'Jeddah', 'Cairo', 'Alexandria', 'Casablanca', 'Lagos', 'Nairobi', 'Johannesburg', 'Cape Town', 'Mumbai', 'Delhi',
+    'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad', 'Jaipur', 'Surat', 'Lucknow', 'Kanpur',
+    'Beijing', 'Shanghai', 'Guangzhou', 'Shenzhen', 'Chengdu', 'Chongqing', 'Hangzhou', 'Wuhan', 'Xi\'an', 'Nanjing',
+    'Hong Kong', 'Singapore', 'Bangkok', 'Jakarta', 'Manila', 'Ho Chi Minh City', 'Hanoi', 'Seoul', 'Busan', 'Taipei',
+    'Kuala Lumpur', 'Phnom Penh', 'Vientiane', 'Yangon', 'Dhaka', 'Kathmandu', 'Colombo', 'Karachi', 'Lahore', 'Islamabad',
+    'Tehran', 'Baghdad', 'Damascus', 'Beirut', 'Amman', 'Jerusalem', 'Tel Aviv', 'Haifa', 'Nicosia', 'Limassol',
+    'Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Gold Coast', 'Newcastle', 'Canberra', 'Sunshine Coast', 'Wollongong',
+    'Auckland', 'Wellington', 'Christchurch', 'Hamilton', 'Tauranga', 'Napier', 'Palmerston North', 'Rotorua', 'New Plymouth', 'Invercargill',
+    'Tokyo', 'Yokohama', 'Osaka', 'Nagoya', 'Sapporo', 'Fukuoka', 'Kobe', 'Kawasaki', 'Kyoto', 'Saitama',
+    'Hiroshima', 'Sendai', 'Chiba', 'Kitakyushu', 'Sakai', 'Niigata', 'Hamamatsu', 'Shizuoka', 'Okayama', 'Kumamoto',
+    'Kagoshima', 'Hachioji', 'Utsunomiya', 'Matsuyama', 'Kanazawa', 'Nagano', 'Oita', 'Fukushima', 'Akita', 'Aomori',
+    'Moscow', 'Saint Petersburg', 'Novosibirsk', 'Yekaterinburg', 'Kazan', 'Nizhny Novgorod', 'Chelyabinsk', 'Samara', 'Omsk', 'Rostov-on-Don',
+    'Ufa', 'Krasnoyarsk', 'Voronezh', 'Perm', 'Volgograd', 'Krasnodar', 'Saratov', 'Tyumen', 'Tolyatti', 'Izhevsk',
+    'Barnaul', 'Ulyanovsk', 'Irkutsk', 'Khabarovsk', 'Yaroslavl', 'Vladivostok', 'Makhachkala', 'Tomsk', 'Orenburg', 'Kemerovo',
+    'Novokuznetsk', 'Ryazan', 'Astrakhan', 'Naberezhnye Chelny', 'Penza', 'Lipetsk', 'Kirov', 'Cheboksary', 'Kaliningrad', 'Tula',
+  ];
+
+  console.log('Seeding cities...');
+  let seededCount = 0;
+  for (const cityName of cities) {
+    try {
+      await prisma.city.upsert({
+        where: { name: cityName },
+        update: {},
+        create: {
+          name: cityName,
+        },
+      });
+      seededCount++;
+    } catch (error) {
+      console.error(`Error seeding city ${cityName}:`, error);
+    }
+  }
+  console.log(`Seeded ${seededCount} cities`);
+
   console.log('Database seeded successfully!');
 }
 

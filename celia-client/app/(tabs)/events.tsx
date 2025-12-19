@@ -62,24 +62,41 @@ export default function EventsScreen() {
     try {
       setLoading(true);
       const data = await api.getMyEvents();
+      
+      console.log('[EventsScreen] Fetched events data:', data);
+      console.log('[EventsScreen] Data type:', typeof data, 'Is array:', Array.isArray(data));
 
-      const today = new Date().toISOString().split('T')[0];
+      if (!Array.isArray(data)) {
+        console.error('[EventsScreen] Expected array but got:', data);
+        setEvents([]);
+        return;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       let filtered = data;
 
       if (tab === 'upcoming') {
         filtered = data.filter((e: any) => {
           const eventDate = e.eventDate || e.event_date;
-          return e.status === 'active' && eventDate >= today;
+          if (!eventDate) return false;
+          const eventDateObj = new Date(eventDate);
+          eventDateObj.setHours(0, 0, 0, 0);
+          return e.status === 'active' && eventDateObj >= today;
         });
       } else if (tab === 'past') {
         filtered = data.filter((e: any) => {
           const eventDate = e.eventDate || e.event_date;
-          return e.status === 'active' && eventDate < today;
+          if (!eventDate) return false;
+          const eventDateObj = new Date(eventDate);
+          eventDateObj.setHours(0, 0, 0, 0);
+          return e.status === 'active' && eventDateObj < today;
         });
       } else if (tab === 'drafts') {
         filtered = data.filter((e: any) => e.status === 'draft');
       }
 
+      console.log('[EventsScreen] Filtered events for tab', tab, ':', filtered.length);
       setEvents(filtered as any);
 
       const statsMap: Record<string, InvitationStats> = {};

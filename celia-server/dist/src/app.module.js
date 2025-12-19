@@ -20,6 +20,10 @@ const scoring_module_1 = require("./scoring/scoring.module");
 const friends_module_1 = require("./friends/friends.module");
 const lists_module_1 = require("./lists/lists.module");
 const recommendations_module_1 = require("./recommendations/recommendations.module");
+const cities_module_1 = require("./cities/cities.module");
+const email_module_1 = require("./email/email.module");
+const push_module_1 = require("./push/push.module");
+const notifications_module_1 = require("./notifications/notifications.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -45,6 +49,10 @@ exports.AppModule = AppModule = __decorate([
             friends_module_1.FriendsModule,
             lists_module_1.ListsModule,
             recommendations_module_1.RecommendationsModule,
+            cities_module_1.CitiesModule,
+            email_module_1.EmailModule,
+            push_module_1.PushModule,
+            notifications_module_1.NotificationsModule,
         ],
     })
 ], AppModule);

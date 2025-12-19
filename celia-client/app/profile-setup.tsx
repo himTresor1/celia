@@ -56,8 +56,12 @@ export default function ProfileSetupScreen() {
   const [collegeEmailError, setCollegeEmailError] = useState<string | null>(
     null
   );
-  const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
-  const [locationInput, setLocationInput] = useState('');
+  const [preferredCityIds, setPreferredCityIds] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<Array<{ id: string; name: string }>>([]);
+  const [citySearch, setCitySearch] = useState('');
+  const [citySearchResults, setCitySearchResults] = useState<Array<{ id: string; name: string }>>([]);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
 
   const [collegeSearch, setCollegeSearch] = useState('');
 
@@ -216,12 +220,16 @@ export default function ProfileSetupScreen() {
       if (profile.college_verified) {
         setCollegeEmailVerified(true);
       }
+      // Load preferred cities if available (need to fetch city details by IDs)
+      // For now, we'll just initialize empty and let user re-select
+      // In future, we can fetch city details by IDs from backend
       if (
-        profile.preferred_locations &&
-        Array.isArray(profile.preferred_locations) &&
-        profile.preferred_locations.length > 0
+        profile.preferred_city_ids &&
+        Array.isArray(profile.preferred_city_ids) &&
+        profile.preferred_city_ids.length > 0
       ) {
-        setPreferredLocations(profile.preferred_locations);
+        setPreferredCityIds(profile.preferred_city_ids);
+        // Note: We would need to fetch city details here in the future
       }
 
       setInitializing(false);
@@ -238,15 +246,52 @@ export default function ProfileSetupScreen() {
     }
   };
 
-  const handleAddLocation = () => {
-    if (locationInput.trim() && preferredLocations.length < 3) {
-      setPreferredLocations([...preferredLocations, locationInput.trim()]);
-      setLocationInput('');
+  // Search cities with debounce
+  useEffect(() => {
+    const searchCities = async () => {
+      if (citySearch.trim().length < 2) {
+        setCitySearchResults([]);
+        setShowCityDropdown(false);
+        return;
+      }
+
+      setLoadingCities(true);
+      try {
+        const cities = await api.getCities(citySearch.trim(), 20);
+        setCitySearchResults(cities);
+        setShowCityDropdown(true);
+      } catch (error) {
+        console.error('Error searching cities:', error);
+        setCitySearchResults([]);
+      } finally {
+        setLoadingCities(false);
+      }
+    };
+
+    const timeoutId = setTimeout(searchCities, 300);
+    return () => clearTimeout(timeoutId);
+  }, [citySearch]);
+
+  const handleSelectCity = (city: { id: string; name: string }) => {
+    if (preferredCityIds.length >= 3) {
+      Alert.alert('Maximum Cities', 'You can only select up to 3 cities');
+      return;
     }
+
+    if (preferredCityIds.includes(city.id)) {
+      Alert.alert('City Already Selected', 'This city is already in your list');
+      return;
+    }
+
+    setPreferredCityIds([...preferredCityIds, city.id]);
+    setSelectedCities([...selectedCities, city]);
+    setCitySearch('');
+    setShowCityDropdown(false);
   };
 
-  const handleRemoveLocation = (index: number) => {
-    setPreferredLocations(preferredLocations.filter((_, i) => i !== index));
+  const handleRemoveCity = (cityId: string) => {
+    setPreferredCityIds(preferredCityIds.filter((id) => id !== cityId));
+    setSelectedCities(selectedCities.filter((city) => city.id !== cityId));
   };
 
   const isCollegeEmailValid = (email: string): boolean => {
@@ -401,7 +446,7 @@ export default function ProfileSetupScreen() {
         collegeName: selectedCollege?.name,
         collegeId: selectedCollege?.id,
         collegeVerified: collegeEmailVerified,
-        preferredLocations,
+        preferredCityIds,
         profileCompleted: true,
       };
 
@@ -644,41 +689,76 @@ export default function ProfileSetupScreen() {
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Preferred Cities</Text>
             <Text style={styles.stepSubtitle}>
-              Select up to 3 cities where you'd like to attend events
-            </Text>
-            <Text style={styles.stepSubtitle}>
               Select up to 3 cities where you'd like to attend events (Optional)
             </Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Add City (up to 3)</Text>
+              <Text style={styles.label}>
+                Search and Select Cities (up to 3)
+              </Text>
               <View style={styles.locationInputContainer}>
                 <MapPin size={20} color="#666" />
                 <TextInput
                   style={styles.locationInput}
-                  placeholder="e.g., New York, Los Angeles, Boston"
-                  value={locationInput}
-                  onChangeText={setLocationInput}
+                  placeholder="Search for a city..."
+                  value={citySearch}
+                  onChangeText={setCitySearch}
+                  onFocus={() => {
+                    if (citySearchResults.length > 0) {
+                      setShowCityDropdown(true);
+                    }
+                  }}
                 />
-                <TouchableOpacity
-                  style={styles.addLocationButton}
-                  onPress={handleAddLocation}
-                  disabled={preferredLocations.length >= 3}
-                >
-                  <Text style={styles.addLocationButtonText}>Add</Text>
-                </TouchableOpacity>
+                {loadingCities && (
+                  <ActivityIndicator size="small" color="#3AFF6E" style={{ marginRight: 8 }} />
+                )}
               </View>
+
+              {showCityDropdown && citySearchResults.length > 0 && (
+                <View style={styles.cityDropdown}>
+                  <FlatList
+                    data={citySearchResults}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item: city }) => (
+                      <TouchableOpacity
+                        style={styles.cityDropdownItem}
+                        onPress={() => handleSelectCity(city)}
+                        disabled={preferredCityIds.includes(city.id)}
+                      >
+                        <MapPin size={16} color="#666" />
+                        <Text
+                          style={[
+                            styles.cityDropdownText,
+                            preferredCityIds.includes(city.id) && styles.cityDropdownTextDisabled,
+                          ]}
+                        >
+                          {city.name}
+                        </Text>
+                        {preferredCityIds.includes(city.id) && (
+                          <Text style={styles.cityDropdownSelected}>✓ Selected</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    style={styles.cityDropdownList}
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                  />
+                </View>
+              )}
+
+              {citySearch.trim().length > 0 && citySearchResults.length === 0 && !loadingCities && (
+                <Text style={styles.helperText}>No cities found. Try a different search.</Text>
+              )}
             </View>
 
-            {preferredLocations.length > 0 && (
+            {selectedCities.length > 0 && (
               <View style={styles.locationsList}>
-                {preferredLocations.map((location, index) => (
-                  <View key={index} style={styles.locationChip}>
+                <Text style={styles.label}>Selected Cities ({selectedCities.length}/3)</Text>
+                {selectedCities.map((city) => (
+                  <View key={city.id} style={styles.locationChip}>
                     <MapPin size={16} color="#3AFF6E" />
-                    <Text style={styles.locationChipText}>{location}</Text>
-                    <TouchableOpacity
-                      onPress={() => handleRemoveLocation(index)}
-                    >
+                    <Text style={styles.locationChipText}>{city.name}</Text>
+                    <TouchableOpacity onPress={() => handleRemoveCity(city.id)}>
                       <X size={16} color="#666" />
                     </TouchableOpacity>
                   </View>
@@ -1165,23 +1245,52 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     backgroundColor: '#fff',
+    position: 'relative',
+    zIndex: 1,
   },
   locationInput: {
     flex: 1,
     fontSize: 16,
   },
-  addLocationButton: {
-    backgroundColor: '#3AFF6E',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
+  cityDropdown: {
+    marginTop: 8,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    maxHeight: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  addLocationButtonText: {
-    color: '#fff',
+  cityDropdownList: {
+    maxHeight: 200,
+  },
+  cityDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  cityDropdownText: {
+    flex: 1,
     fontSize: 14,
+    color: '#1a1a1a',
+  },
+  cityDropdownTextDisabled: {
+    color: '#999',
+  },
+  cityDropdownSelected: {
+    fontSize: 12,
+    color: '#3AFF6E',
     fontWeight: '600',
   },
   locationsList: {
+    marginTop: 16,
     gap: 8,
   },
   locationChip: {

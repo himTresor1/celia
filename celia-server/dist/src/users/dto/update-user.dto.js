@@ -93,12 +93,22 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: ['Stanford, CA', 'San Francisco, CA'],
-        description: 'Preferred locations (up to 3)',
+        description: 'Preferred locations (up to 3) - deprecated, use preferredCityIds',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
     __metadata("design:type", Array)
 ], UpdateUserDto.prototype, "preferredLocations", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        example: ['city-uuid-1', 'city-uuid-2', 'city-uuid-3'],
+        description: 'Preferred city IDs (up to 3)',
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], UpdateUserDto.prototype, "preferredCityIds", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         example: true,

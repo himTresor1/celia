@@ -46,7 +46,9 @@ export default function LoginScreen() {
           signInError.message || 'Login failed. Please check your credentials.'
         );
       } else {
-        // Redirect to dashboard/home after successful login
+        // Check profile completion status after login
+        // The _layout.tsx will handle the redirect based on profile completion
+        // For now, just navigate - the layout will redirect appropriately
         router.replace('/(tabs)');
       }
     } catch (err: any) {

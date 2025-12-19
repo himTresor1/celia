@@ -211,7 +211,10 @@ class ApiClient {
     const params: any = {};
     if (status) params.status = status;
     const response = await this.client.get('/events/my', { params });
-    return response.data;
+    // Backend response is wrapped: { message: "Events retrieved successfully", data: [...] }
+    const data = response.data.data || response.data;
+    // Ensure we return an array
+    return Array.isArray(data) ? data : [];
   }
 
   async getUserHostedEvents(hostId: string, limit?: number) {
@@ -280,12 +283,18 @@ class ApiClient {
   async getInvitations(userId: string) {
     // Use /invitations/my endpoint which gets invitations for the current authenticated user
     const response = await this.client.get('/invitations/my');
-    return response.data;
+    // Backend response is wrapped: { message: "Invitations retrieved successfully", data: [...] }
+    const data = response.data.data || response.data;
+    // Ensure we return an array
+    return Array.isArray(data) ? data : [];
   }
 
   async getEventInvitations(eventId: string) {
     const response = await this.client.get(`/invitations/event/${eventId}`);
-    return response.data;
+    // Backend response is wrapped: { message: "...", data: [...] }
+    const data = response.data.data || response.data;
+    // Ensure we return an array
+    return Array.isArray(data) ? data : [];
   }
 
   async deleteInvitation(invitationId: string) {
@@ -318,7 +327,8 @@ class ApiClient {
 
   async getSavedUsers(userId: string) {
     const response = await this.client.get('/lists/saved');
-    return response.data;
+    // Backend response is wrapped: { message: "Data retrieved successfully", data: { items, total, ... } }
+    return response.data.data || response.data;
   }
 
   async addToSaved(savedUserId: string, context?: string, notes?: string) {
@@ -339,7 +349,8 @@ class ApiClient {
 
   async getInvitees(userId: string) {
     const response = await this.client.get('/lists/invitees');
-    return response.data;
+    // Backend response is wrapped: { message: "...", data: { items, total, ... } }
+    return response.data.data || response.data;
   }
 
   async getRecommendations(filters?: any) {
@@ -375,7 +386,47 @@ class ApiClient {
 
   async getEventCategories() {
     const response = await this.client.get('/categories/events');
+    // Backend response is wrapped: { message: "...", data: [...] }
+    const data = response.data.data || response.data;
+    // Ensure we return an array
+    return Array.isArray(data) ? data : [];
+  }
+
+  async getCities(search?: string, limit?: number) {
+    const params: any = {};
+    if (search) params.search = search;
+    if (limit) params.limit = limit;
+    const response = await this.client.get('/cities', { params });
+    // Handle both direct array and wrapped response
+    const data = response.data?.data || response.data || [];
+    return Array.isArray(data) ? data : [];
+  }
+
+  async updatePushToken(pushToken: string) {
+    const response = await this.client.patch('/users/push-token', { pushToken });
     return response.data;
+  }
+
+  async getNotifications(page = 1, limit = 50) {
+    const response = await this.client.get('/notifications', {
+      params: { page, limit },
+    });
+    return response.data?.data || response.data;
+  }
+
+  async markNotificationAsRead(notificationId: string) {
+    const response = await this.client.patch(`/notifications/${notificationId}/read`);
+    return response.data;
+  }
+
+  async markAllNotificationsAsRead() {
+    const response = await this.client.patch('/notifications/read-all');
+    return response.data;
+  }
+
+  async getUnreadNotificationCount() {
+    const response = await this.client.get('/notifications/unread-count');
+    return response.data?.data || response.data;
   }
 }
 

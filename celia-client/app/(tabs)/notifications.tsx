@@ -49,15 +49,28 @@ interface Invitation {
   };
 }
 
+interface AppNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  data?: any;
+  read: boolean;
+  readAt: string | null;
+  createdAt: string;
+}
+
 export default function NotificationsScreen() {
   const { user } = useAuth();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [appNotifications, setAppNotifications] = useState<AppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [filteredInvitations, setFilteredInvitations] = useState<Invitation[]>(
     []
   );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [tab, setTab] = useState<'pending' | 'going' | 'declined'>('pending');
+  const [tab, setTab] = useState<'pending' | 'going' | 'declined' | 'all'>('all');
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [selectedInvitation, setSelectedInvitation] = useState<string | null>(
     null
@@ -67,6 +80,8 @@ export default function NotificationsScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchInvitations();
+      fetchAppNotifications();
+      fetchUnreadCount();
     }, [])
   );
 
@@ -82,18 +97,60 @@ export default function NotificationsScreen() {
 
     try {
       const data = await api.getInvitations(user.id);
-      setInvitations(data);
+      // Ensure data is an array before setting state
+      const invitationsArray = Array.isArray(data) ? data : [];
+      console.log('[NotificationsScreen] Fetched invitations:', invitationsArray.length);
+      setInvitations(invitationsArray);
     } catch (error) {
       console.error('Error fetching invitations:', error);
       Alert.alert('Error', 'Failed to load invitations');
+      setInvitations([]); // Set empty array on error
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
+  const fetchAppNotifications = async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await api.getNotifications(1, 50);
+      const notifications = response?.items || response?.data?.items || response || [];
+      setAppNotifications(Array.isArray(notifications) ? notifications : []);
+    } catch (error) {
+      console.error('Error fetching app notifications:', error);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await api.getUnreadNotificationCount();
+      const count = response?.count || response?.data?.count || 0;
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await api.markNotificationAsRead(notificationId);
+      fetchAppNotifications();
+      fetchUnreadCount();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
   const filterInvitations = () => {
-    const statusMap: Record<typeof tab, string> = {
+    if (tab === 'all') {
+      // Don't filter for 'all' tab - it shows app notifications
+      return;
+    }
+    const statusMap: Record<'pending' | 'going' | 'declined', string> = {
       pending: 'pending',
       going: 'going', // Backend uses 'going' for accepted
       declined: 'declined', // Backend uses 'declined' not 'rejected'
@@ -105,6 +162,8 @@ export default function NotificationsScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     fetchInvitations();
+    fetchAppNotifications();
+    fetchUnreadCount();
   };
 
   const handleAccept = async (invitationId: string) => {
@@ -168,9 +227,39 @@ export default function NotificationsScreen() {
     ]);
   };
 
+  const renderAppNotification = ({ item }: { item: AppNotification }) => {
+    return (
+      <TouchableOpacity
+        style={[styles.notificationCard, !item.read && styles.notificationCardUnread]}
+        onPress={() => {
+          if (!item.read) {
+            handleMarkAsRead(item.id);
+          }
+          // Navigate based on notification type
+          if (item.data?.eventId) {
+            router.push(`/event/${item.data.eventId}`);
+          }
+        }}
+        activeOpacity={0.7}
+      >
+        <View style={styles.notificationContent}>
+          <View style={styles.notificationHeader}>
+            <Text style={styles.notificationTitle}>{item.title}</Text>
+            {!item.read && <View style={styles.unreadDot} />}
+          </View>
+          <Text style={styles.notificationMessage}>{item.message}</Text>
+          <Text style={styles.notificationTime}>
+            {new Date(item.createdAt).toLocaleDateString()}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderInvitation = ({ item }: { item: Invitation }) => {
     const coverPhoto = item.event.photoUrls?.[0] || null;
-    const hostPhoto = item.inviter.photoUrls?.[0] || null;
+    // API returns avatarUrl, but component expects photoUrls array
+    const hostPhoto = item.inviter.photoUrls?.[0] || (item.inviter as any).avatarUrl || null;
 
     return (
       <TouchableOpacity
@@ -256,17 +345,39 @@ export default function NotificationsScreen() {
     );
   };
 
-  const pendingCount = invitations.filter((i) => i.status === 'pending').length;
-  const goingCount = invitations.filter((i) => i.status === 'going').length;
-  const declinedCount = invitations.filter(
+  // Ensure invitations is an array before filtering
+  const invitationsArray = Array.isArray(invitations) ? invitations : [];
+  const pendingCount = invitationsArray.filter((i) => i.status === 'pending').length;
+  const goingCount = invitationsArray.filter((i) => i.status === 'going').length;
+  const declinedCount = invitationsArray.filter(
     (i) => i.status === 'declined'
   ).length;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Invitations</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Notifications</Text>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount}</Text>
+            </View>
+          )}
+        </View>
         <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, tab === 'all' && styles.tabActive]}
+            onPress={() => setTab('all')}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                tab === 'all' && styles.tabTextActive,
+              ]}
+            >
+              All {unreadCount > 0 && `(${unreadCount})`}
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, tab === 'pending' && styles.tabActive]}
             onPress={() => setTab('pending')}
@@ -306,7 +417,27 @@ export default function NotificationsScreen() {
         </View>
       </View>
 
-      {filteredInvitations.length === 0 ? (
+      {tab === 'all' ? (
+        appNotifications.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Bell size={64} color="#ccc" />
+            <Text style={styles.emptyText}>No notifications</Text>
+            <Text style={styles.emptySubtext}>
+              You'll see all your notifications here
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={appNotifications}
+            renderItem={renderAppNotification}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          />
+        )
+      ) : filteredInvitations.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Bell size={64} color="#ccc" />
           <Text style={styles.emptyText}>No invitations</Text>
@@ -674,5 +805,71 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.medium,
     color: '#fff',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  badge: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    fontWeight: '600',
+  },
+  notificationCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  notificationCardUnread: {
+    backgroundColor: '#f0f8ff',
+    borderColor: '#3AFF6E',
+    borderWidth: 2,
+  },
+  notificationContent: {
+    flex: 1,
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  notificationTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: '#1a1a1a',
+    flex: 1,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#3AFF6E',
+  },
+  notificationMessage: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: '#666',
+    marginBottom: 8,
+  },
+  notificationTime: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#999',
   },
 });

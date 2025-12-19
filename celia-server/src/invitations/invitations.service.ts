@@ -12,12 +12,16 @@ import {
   BulkInviteDto,
 } from './dto/create-invitation.dto';
 import { UpdateInvitationDto } from './dto/update-invitation.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class InvitationsService {
   private readonly logger = new Logger(InvitationsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async create(inviterId: string, dto: CreateInvitationDto) {
     const event = await this.prisma.event.findUnique({
@@ -108,6 +112,37 @@ export class InvitationsService {
 
       return created;
     });
+
+    // Send notification after invitation is created
+    const eventWithHost = await this.prisma.event.findUnique({
+      where: { id: dto.eventId },
+      include: {
+        host: {
+          select: {
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    if (eventWithHost) {
+      this.notificationsService
+        .sendInvitationNotification(
+          dto.inviteeId,
+          eventWithHost.host.fullName,
+          eventWithHost.name,
+          eventWithHost.eventDate?.toISOString() || new Date().toISOString(),
+          eventWithHost.id,
+          eventWithHost.locationName || undefined,
+          dto.personalMessage,
+        )
+        .catch((error) =>
+          this.logger.error(
+            `Failed to send notification for invitation:`,
+            error,
+          ),
+        );
+    }
 
     return invitation;
   }
@@ -294,6 +329,39 @@ export class InvitationsService {
           throw txError;
         }
       });
+
+      // Send notifications for each invitation (async, don't wait)
+      const eventWithHost = await this.prisma.event.findUnique({
+        where: { id: dto.eventId },
+        include: {
+          host: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+      });
+
+      if (eventWithHost) {
+        for (const invitation of invitations) {
+          this.notificationsService
+            .sendInvitationNotification(
+              invitation.inviteeId,
+              eventWithHost.host.fullName,
+              eventWithHost.name,
+              eventWithHost.eventDate?.toISOString() || new Date().toISOString(),
+              eventWithHost.id,
+              eventWithHost.locationName || undefined,
+              dto.personalMessage,
+            )
+            .catch((error) =>
+              this.logger.error(
+                `Failed to send notification for invitation ${invitation.id}:`,
+                error,
+              ),
+            );
+        }
+      }
 
       const result = {
         message: `Successfully sent ${invitations.length} invitations`,

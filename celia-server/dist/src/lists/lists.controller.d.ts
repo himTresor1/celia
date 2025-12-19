@@ -5,7 +5,7 @@ export declare class ListsController {
     private readonly listsService;
     constructor(listsService: ListsService);
     getSavedUsers(user: any, page?: string, limit?: string): Promise<any>;
-    addToSaved(user: any, dto: AddToSavedDto): Promise<any>;
+    addToSaved(user: any, dto: AddToSavedDto, req: any): Promise<any>;
     removeFromSaved(user: any, userId: string): Promise<{
         message: string;
     }>;

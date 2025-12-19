@@ -43,6 +43,7 @@ export declare class AuthService {
             interests: string[];
             collegeVerified: boolean;
             preferredLocations: string[];
+            preferredCityIds: string[];
             profileCompleted: boolean;
             attractivenessScore: number;
             engagementPoints: number;
@@ -52,6 +53,7 @@ export declare class AuthService {
             profileCompleteness: number;
             createdAt: Date;
             updatedAt: Date;
+            pushToken: string | null;
         };
         token: string;
     }>;
@@ -68,6 +70,7 @@ export declare class AuthService {
         interests: string[];
         collegeVerified: boolean;
         preferredLocations: string[];
+        preferredCityIds: string[];
         profileCompleted: boolean;
         createdAt: Date;
         updatedAt: Date;

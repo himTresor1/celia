@@ -109,8 +109,8 @@ export declare class UsersService {
         createdAt: Date;
         updatedAt: Date;
         name: string;
-        hostId: string;
         description: string | null;
+        hostId: string;
         categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
@@ -146,8 +146,8 @@ export declare class UsersService {
         createdAt: Date;
         updatedAt: Date;
         name: string;
-        hostId: string;
         description: string | null;
+        hostId: string;
         categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
@@ -163,4 +163,34 @@ export declare class UsersService {
         externalLink: string | null;
         externalLinkType: string | null;
     })[]>;
+    updatePushToken(userId: string, pushToken: string): Promise<{
+        id: string;
+        email: string;
+        password: string;
+        fullName: string;
+        dateOfBirth: Date | null;
+        age: number | null;
+        gender: string | null;
+        collegeName: string | null;
+        collegeId: string | null;
+        major: string | null;
+        graduationYear: number | null;
+        bio: string;
+        avatarUrl: string | null;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        interests: string[];
+        collegeVerified: boolean;
+        preferredLocations: string[];
+        preferredCityIds: string[];
+        profileCompleted: boolean;
+        attractivenessScore: number;
+        engagementPoints: number;
+        socialStreakDays: number;
+        lastActiveDate: Date | null;
+        appOpensCount: number;
+        profileCompleteness: number;
+        createdAt: Date;
+        updatedAt: Date;
+        pushToken: string | null;
+    }>;
 }

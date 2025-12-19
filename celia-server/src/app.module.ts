@@ -11,6 +11,10 @@ import { ScoringModule } from './scoring/scoring.module';
 import { FriendsModule } from './friends/friends.module';
 import { ListsModule } from './lists/lists.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
+import { CitiesModule } from './cities/cities.module';
+import { EmailModule } from './email/email.module';
+import { PushModule } from './push/push.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -33,6 +37,10 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
     FriendsModule,
     ListsModule,
     RecommendationsModule,
+    CitiesModule,
+    EmailModule,
+    PushModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

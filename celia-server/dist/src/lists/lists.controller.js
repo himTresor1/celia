@@ -24,27 +24,46 @@ let ListsController = class ListsController {
         this.listsService = listsService;
     }
     async getSavedUsers(user, page, limit) {
-        return this.listsService.getSavedUsers(user.sub, page ? parseInt(page) : 1, limit ? parseInt(limit) : 50);
+        return this.listsService.getSavedUsers(user.id || user.sub, page ? parseInt(page) : 1, limit ? parseInt(limit) : 50);
     }
-    async addToSaved(user, dto) {
-        return this.listsService.addToSaved(user.sub, dto.savedUserId, dto.context, dto.notes);
+    async addToSaved(user, dto, req) {
+        console.log('[ListsController] addToSaved - Request received');
+        console.log('[ListsController] addToSaved - User object:', user);
+        console.log('[ListsController] addToSaved - User type:', typeof user);
+        console.log('[ListsController] addToSaved - User is null?', user === null);
+        console.log('[ListsController] addToSaved - User is undefined?', user === undefined);
+        if (user) {
+            console.log('[ListsController] addToSaved - User object keys:', Object.keys(user));
+            console.log('[ListsController] addToSaved - user.id:', user.id);
+            console.log('[ListsController] addToSaved - user.sub:', user.sub);
+        }
+        console.log('[ListsController] addToSaved - req.user:', req.user);
+        const userId = user?.id || user?.sub || user?.userId || req?.user?.id || req?.user?.sub;
+        if (!userId) {
+            console.error('[ListsController] addToSaved - No user ID found!');
+            console.error('[ListsController] addToSaved - User object:', JSON.stringify(user, null, 2));
+            console.error('[ListsController] addToSaved - Request user:', JSON.stringify(req.user, null, 2));
+            throw new Error('User ID not found in request. Please ensure you are authenticated.');
+        }
+        console.log('[ListsController] addToSaved - Using userId:', userId);
+        return this.listsService.addToSaved(userId, dto.savedUserId, dto.context, dto.notes);
     }
     async removeFromSaved(user, userId) {
-        await this.listsService.removeFromSaved(user.sub, userId);
+        await this.listsService.removeFromSaved(user.id || user.sub, userId);
         return { message: 'User removed from saved list' };
     }
     async checkIfSaved(user, userId) {
-        const isSaved = await this.listsService.isUserSaved(user.sub, userId);
+        const isSaved = await this.listsService.isUserSaved(user.id || user.sub, userId);
         return { isSaved };
     }
     async getInvitees(user, page, limit) {
-        return this.listsService.getInvitees(user.sub, page ? parseInt(page) : 1, limit ? parseInt(limit) : 50);
+        return this.listsService.getInvitees(user.id || user.sub, page ? parseInt(page) : 1, limit ? parseInt(limit) : 50);
     }
     async bulkInvite(user, dto) {
-        return this.listsService.bulkInvite(user.sub, dto.eventId, dto.userIds, dto.personalMessage);
+        return this.listsService.bulkInvite(user.id || user.sub, dto.eventId, dto.userIds, dto.personalMessage);
     }
     async searchSavedUsers(user, query, page, limit) {
-        return this.listsService.searchSavedUsers(user.sub, query, page ? parseInt(page) : 1, limit ? parseInt(limit) : 50);
+        return this.listsService.searchSavedUsers(user.id || user.sub, query, page ? parseInt(page) : 1, limit ? parseInt(limit) : 50);
     }
 };
 exports.ListsController = ListsController;
@@ -61,8 +80,9 @@ __decorate([
     (0, common_1.Post)('saved'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, add_to_saved_dto_1.AddToSavedDto]),
+    __metadata("design:paramtypes", [Object, add_to_saved_dto_1.AddToSavedDto, Object]),
     __metadata("design:returntype", Promise)
 ], ListsController.prototype, "addToSaved", null);
 __decorate([

@@ -5,6 +5,7 @@ import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
+import { registerForPushNotifications, setupNotificationListeners } from '@/lib/notifications';
 import {
   DMSans_400Regular,
   DMSans_500Medium,
@@ -17,6 +18,26 @@ SplashScreen.preventAutoHideAsync();
 function RootLayoutNav() {
   const { session, loading, profile } = useAuth();
   const segments = useSegments();
+
+  // Register for push notifications when user is authenticated
+  useEffect(() => {
+    if (session && !loading) {
+      registerForPushNotifications().catch((error) => {
+        console.error('Failed to register for push notifications:', error);
+      });
+
+      // Set up notification listeners
+      const listeners = setupNotificationListeners((notification) => {
+        console.log('Notification received:', notification);
+        // You can add custom handling here, like showing an alert or updating state
+      });
+
+      // Cleanup listeners on unmount
+      return () => {
+        listeners.remove();
+      };
+    }
+  }, [session, loading]);
 
   useEffect(() => {
     if (loading) return;
@@ -47,9 +68,17 @@ function RootLayoutNav() {
 
     // Handle authenticated users
     if (session && profile) {
-      // Always redirect authenticated users to dashboard/home, regardless of profile completion
-      if (!inTabs && !inGetStarted && !inAuthGroup && !inProfileSetup && !inEvent && !inBrowse && !inSaved && !inProfile) {
-        router.replace('/(tabs)');
+      // Check if profile is completed
+      if (!profile.is_profile_completed) {
+        // Profile not completed - redirect to profile setup
+        if (!inProfileSetup && !inAuthGroup) {
+          router.replace('/profile-setup');
+        }
+      } else {
+        // Profile completed - redirect to dashboard/home
+        if (!inTabs && !inGetStarted && !inAuthGroup && !inProfileSetup && !inEvent && !inBrowse && !inSaved && !inProfile) {
+          router.replace('/(tabs)');
+        }
       }
     } else if (!session && !inAuthGroup && !inSplash && !inOnboarding && !inGetStarted) {
       // Unauthenticated users should go to login

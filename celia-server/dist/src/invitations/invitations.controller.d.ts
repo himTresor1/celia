@@ -20,12 +20,12 @@ export declare class InvitationsController {
             };
         } & {
             id: string;
-            status: string;
+            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             createdAt: Date;
             updatedAt: Date;
-            hostId: string;
             name: string;
             description: string | null;
+            hostId: string;
             categoryId: string | null;
             locationName: string | null;
             locationLat: number | null;
@@ -33,10 +33,10 @@ export declare class InvitationsController {
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
-            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             interestTags: string[];
             capacityLimit: number | null;
             isPublic: boolean;
+            status: string;
             cancellationReason: string | null;
             externalLink: string | null;
             externalLinkType: string | null;
@@ -53,15 +53,15 @@ export declare class InvitationsController {
         };
     } & {
         id: string;
-        status: string;
-        personalMessage: string | null;
-        declineReason: string | null;
-        respondedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
+        status: string;
         eventId: string;
         inviterId: string;
         inviteeId: string;
+        personalMessage: string | null;
+        declineReason: string | null;
+        respondedAt: Date | null;
     }>;
     bulkCreate(user: any, dto: BulkInviteDto): Promise<{
         message: string;
@@ -73,20 +73,23 @@ export declare class InvitationsController {
             };
         } & {
             id: string;
-            status: string;
-            personalMessage: string | null;
-            declineReason: string | null;
-            respondedAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             eventId: string;
             inviterId: string;
             inviteeId: string;
+            personalMessage: string | null;
+            declineReason: string | null;
+            respondedAt: Date | null;
         })[];
         skipped: number;
     }>;
     findMyInvitations(user: any, status?: string): Promise<({
         event: {
+            _count: {
+                attendees: number;
+            };
             host: {
                 id: string;
                 fullName: string;
@@ -99,17 +102,14 @@ export declare class InvitationsController {
                 name: string;
                 icon: string | null;
             };
-            _count: {
-                attendees: number;
-            };
         } & {
             id: string;
-            status: string;
+            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             createdAt: Date;
             updatedAt: Date;
-            hostId: string;
             name: string;
             description: string | null;
+            hostId: string;
             categoryId: string | null;
             locationName: string | null;
             locationLat: number | null;
@@ -117,10 +117,10 @@ export declare class InvitationsController {
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
-            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             interestTags: string[];
             capacityLimit: number | null;
             isPublic: boolean;
+            status: string;
             cancellationReason: string | null;
             externalLink: string | null;
             externalLinkType: string | null;
@@ -132,15 +132,15 @@ export declare class InvitationsController {
         };
     } & {
         id: string;
-        status: string;
-        personalMessage: string | null;
-        declineReason: string | null;
-        respondedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
+        status: string;
         eventId: string;
         inviterId: string;
         inviteeId: string;
+        personalMessage: string | null;
+        declineReason: string | null;
+        respondedAt: Date | null;
     })[]>;
     findEventInvitations(eventId: string, user: any): Promise<({
         invitee: {
@@ -152,15 +152,15 @@ export declare class InvitationsController {
         };
     } & {
         id: string;
-        status: string;
-        personalMessage: string | null;
-        declineReason: string | null;
-        respondedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
+        status: string;
         eventId: string;
         inviterId: string;
         inviteeId: string;
+        personalMessage: string | null;
+        declineReason: string | null;
+        respondedAt: Date | null;
     })[]>;
     updateStatus(id: string, user: any, dto: UpdateInvitationDto): Promise<{
         event: {
@@ -177,12 +177,12 @@ export declare class InvitationsController {
             };
         } & {
             id: string;
-            status: string;
+            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             createdAt: Date;
             updatedAt: Date;
-            hostId: string;
             name: string;
             description: string | null;
+            hostId: string;
             categoryId: string | null;
             locationName: string | null;
             locationLat: number | null;
@@ -190,25 +190,25 @@ export declare class InvitationsController {
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
-            photoUrls: import("@prisma/client/runtime/library").JsonValue;
             interestTags: string[];
             capacityLimit: number | null;
             isPublic: boolean;
+            status: string;
             cancellationReason: string | null;
             externalLink: string | null;
             externalLinkType: string | null;
         };
     } & {
         id: string;
-        status: string;
-        personalMessage: string | null;
-        declineReason: string | null;
-        respondedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
+        status: string;
         eventId: string;
         inviterId: string;
         inviteeId: string;
+        personalMessage: string | null;
+        declineReason: string | null;
+        respondedAt: Date | null;
     }>;
     delete(id: string, user: any): Promise<{
         message: string;
