@@ -5,7 +5,6 @@ export declare class UsersController {
     constructor(usersService: UsersService);
     findAll(search?: string, interests?: string, college?: string): Promise<{
         id: string;
-        createdAt: Date;
         email: string;
         fullName: string;
         age: number;
@@ -21,12 +20,12 @@ export declare class UsersController {
         preferredLocations: string[];
         profileCompleted: boolean;
         attractivenessScore: number;
+        createdAt: Date;
     }[]>;
     findOne(id: string): Promise<{
         friendsCount: number;
         rating: number;
         id: string;
-        createdAt: Date;
         email: string;
         fullName: string;
         dateOfBirth: Date;
@@ -46,6 +45,7 @@ export declare class UsersController {
         attractivenessScore: number;
         engagementPoints: number;
         socialStreakDays: number;
+        createdAt: Date;
         updatedAt: Date;
         _count: {
             hostedEvents: number;
@@ -57,7 +57,6 @@ export declare class UsersController {
     }>;
     update(id: string, user: any, dto: UpdateUserDto): Promise<{
         id: string;
-        createdAt: Date;
         email: string;
         fullName: string;
         dateOfBirth: Date;
@@ -77,6 +76,7 @@ export declare class UsersController {
         attractivenessScore: number;
         engagementPoints: number;
         socialStreakDays: number;
+        createdAt: Date;
         updatedAt: Date;
     }>;
     getUserStats(id: string): Promise<{
@@ -97,22 +97,23 @@ export declare class UsersController {
         };
         category: {
             id: string;
+            createdAt: Date;
             name: string;
             icon: string | null;
-            createdAt: Date;
         };
     } & {
         id: string;
-        name: string;
-        createdAt: Date;
         photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        createdAt: Date;
         updatedAt: Date;
-        hostId: string;
+        name: string;
         description: string | null;
+        hostId: string;
         categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -134,22 +135,23 @@ export declare class UsersController {
         };
         category: {
             id: string;
+            createdAt: Date;
             name: string;
             icon: string | null;
-            createdAt: Date;
         };
     } & {
         id: string;
-        name: string;
-        createdAt: Date;
         photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        createdAt: Date;
         updatedAt: Date;
-        hostId: string;
+        name: string;
         description: string | null;
+        hostId: string;
         categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -161,4 +163,37 @@ export declare class UsersController {
         externalLink: string | null;
         externalLinkType: string | null;
     })[]>;
+    updatePushToken(user: any, dto: {
+        pushToken: string;
+    }): Promise<{
+        id: string;
+        email: string;
+        password: string;
+        fullName: string;
+        dateOfBirth: Date | null;
+        age: number | null;
+        gender: string | null;
+        collegeName: string | null;
+        collegeId: string | null;
+        major: string | null;
+        graduationYear: number | null;
+        bio: string;
+        avatarUrl: string | null;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        interests: string[];
+        collegeVerified: boolean;
+        preferredLocations: string[];
+        preferredCityIds: string[];
+        profileCompleted: boolean;
+        attractivenessScore: number;
+        engagementPoints: number;
+        socialStreakDays: number;
+        lastActiveDate: Date | null;
+        appOpensCount: number;
+        profileCompleteness: number;
+        createdAt: Date;
+        updatedAt: Date;
+        pushToken: string | null;
+        emailVerified: boolean;
+    }>;
 }

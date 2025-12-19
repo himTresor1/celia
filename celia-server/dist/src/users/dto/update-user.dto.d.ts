@@ -8,6 +8,7 @@ export declare class UpdateUserDto {
     photoUrls?: string[];
     interests?: string[];
     preferredLocations?: string[];
+    preferredCityIds?: string[];
     collegeVerified?: boolean;
     profileCompleted?: boolean;
     dateOfBirth?: string;

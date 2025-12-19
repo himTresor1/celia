@@ -7,7 +7,6 @@ export declare class UsersService {
     constructor(prisma: PrismaService, scoring: ScoringService);
     findAll(search?: string, interests?: string[], college?: string): Promise<{
         id: string;
-        createdAt: Date;
         email: string;
         fullName: string;
         age: number;
@@ -23,12 +22,12 @@ export declare class UsersService {
         preferredLocations: string[];
         profileCompleted: boolean;
         attractivenessScore: number;
+        createdAt: Date;
     }[]>;
     findOne(id: string): Promise<{
         friendsCount: number;
         rating: number;
         id: string;
-        createdAt: Date;
         email: string;
         fullName: string;
         dateOfBirth: Date;
@@ -48,6 +47,7 @@ export declare class UsersService {
         attractivenessScore: number;
         engagementPoints: number;
         socialStreakDays: number;
+        createdAt: Date;
         updatedAt: Date;
         _count: {
             hostedEvents: number;
@@ -59,7 +59,6 @@ export declare class UsersService {
     }>;
     update(id: string, currentUserId: string, dto: UpdateUserDto): Promise<{
         id: string;
-        createdAt: Date;
         email: string;
         fullName: string;
         dateOfBirth: Date;
@@ -79,6 +78,7 @@ export declare class UsersService {
         attractivenessScore: number;
         engagementPoints: number;
         socialStreakDays: number;
+        createdAt: Date;
         updatedAt: Date;
     }>;
     getUserStats(userId: string): Promise<{
@@ -99,22 +99,23 @@ export declare class UsersService {
         };
         category: {
             id: string;
+            createdAt: Date;
             name: string;
             icon: string | null;
-            createdAt: Date;
         };
     } & {
         id: string;
-        name: string;
-        createdAt: Date;
         photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        createdAt: Date;
         updatedAt: Date;
-        hostId: string;
+        name: string;
         description: string | null;
+        hostId: string;
         categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -136,22 +137,23 @@ export declare class UsersService {
         };
         category: {
             id: string;
+            createdAt: Date;
             name: string;
             icon: string | null;
-            createdAt: Date;
         };
     } & {
         id: string;
-        name: string;
-        createdAt: Date;
         photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        createdAt: Date;
         updatedAt: Date;
-        hostId: string;
+        name: string;
         description: string | null;
+        hostId: string;
         categoryId: string | null;
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -163,4 +165,35 @@ export declare class UsersService {
         externalLink: string | null;
         externalLinkType: string | null;
     })[]>;
+    updatePushToken(userId: string, pushToken: string): Promise<{
+        id: string;
+        email: string;
+        password: string;
+        fullName: string;
+        dateOfBirth: Date | null;
+        age: number | null;
+        gender: string | null;
+        collegeName: string | null;
+        collegeId: string | null;
+        major: string | null;
+        graduationYear: number | null;
+        bio: string;
+        avatarUrl: string | null;
+        photoUrls: import("@prisma/client/runtime/library").JsonValue;
+        interests: string[];
+        collegeVerified: boolean;
+        preferredLocations: string[];
+        preferredCityIds: string[];
+        profileCompleted: boolean;
+        attractivenessScore: number;
+        engagementPoints: number;
+        socialStreakDays: number;
+        lastActiveDate: Date | null;
+        appOpensCount: number;
+        profileCompleteness: number;
+        createdAt: Date;
+        updatedAt: Date;
+        pushToken: string | null;
+        emailVerified: boolean;
+    }>;
 }

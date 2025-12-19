@@ -124,4 +124,17 @@ export class UsersController {
   ) {
     return this.usersService.getUserEvents(id, type);
   }
+
+  @Patch('push-token')
+  @ApiOperation({ summary: 'Update user push notification token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Push token updated',
+  })
+  updatePushToken(
+    @CurrentUser() user: any,
+    @Body() dto: { pushToken: string },
+  ) {
+    return this.usersService.updatePushToken(user.id, dto.pushToken);
+  }
 }

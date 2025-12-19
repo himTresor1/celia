@@ -66,13 +66,16 @@ export default function RegisterScreen() {
     if (signUpError) {
       setError(signUpError.message);
     } else {
-      // Redirect to dashboard/home after successful registration
-      router.replace('/(tabs)');
+      // Redirect to profile setup after successful registration
+      // The _layout.tsx will handle redirecting to dashboard if profile is already completed
+      router.replace('/profile-setup');
     }
   };
 
   const handleVerifyCode = async () => {
-    router.replace('/(tabs)');
+    // After verification, redirect to profile setup
+    // The _layout.tsx will handle redirecting to dashboard if profile is already completed
+    router.replace('/profile-setup');
   };
 
   const handleResendCode = async () => {
@@ -228,7 +231,7 @@ export default function RegisterScreen() {
 
               <TouchableOpacity
                 style={styles.skipButton}
-                onPress={() => router.replace('/(tabs)')}
+                onPress={() => router.replace('/profile-setup')}
                 disabled={loading}
               >
                 <Text style={styles.skipButtonText}>

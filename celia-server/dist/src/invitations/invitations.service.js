@@ -13,9 +13,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.InvitationsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const notifications_service_1 = require("../notifications/notifications.service");
 let InvitationsService = InvitationsService_1 = class InvitationsService {
-    constructor(prisma) {
+    constructor(prisma, notificationsService) {
         this.prisma = prisma;
+        this.notificationsService = notificationsService;
         this.logger = new common_1.Logger(InvitationsService_1.name);
     }
     async create(inviterId, dto) {
@@ -93,6 +95,21 @@ let InvitationsService = InvitationsService_1 = class InvitationsService {
             }
             return created;
         });
+        const eventWithHost = await this.prisma.event.findUnique({
+            where: { id: dto.eventId },
+            include: {
+                host: {
+                    select: {
+                        fullName: true,
+                    },
+                },
+            },
+        });
+        if (eventWithHost) {
+            this.notificationsService
+                .sendInvitationNotification(dto.inviteeId, eventWithHost.host.fullName, eventWithHost.name, eventWithHost.eventDate?.toISOString() || new Date().toISOString(), eventWithHost.id, eventWithHost.locationName || undefined, dto.personalMessage)
+                .catch((error) => this.logger.error(`Failed to send notification for invitation:`, error));
+        }
         return invitation;
     }
     async bulkCreate(inviterId, dto) {
@@ -195,6 +212,23 @@ let InvitationsService = InvitationsService_1 = class InvitationsService {
                     throw txError;
                 }
             });
+            const eventWithHost = await this.prisma.event.findUnique({
+                where: { id: dto.eventId },
+                include: {
+                    host: {
+                        select: {
+                            fullName: true,
+                        },
+                    },
+                },
+            });
+            if (eventWithHost) {
+                for (const invitation of invitations) {
+                    this.notificationsService
+                        .sendInvitationNotification(invitation.inviteeId, eventWithHost.host.fullName, eventWithHost.name, eventWithHost.eventDate?.toISOString() || new Date().toISOString(), eventWithHost.id, eventWithHost.locationName || undefined, dto.personalMessage)
+                        .catch((error) => this.logger.error(`Failed to send notification for invitation ${invitation.id}:`, error));
+                }
+            }
             const result = {
                 message: `Successfully sent ${invitations.length} invitations`,
                 invitations,
@@ -353,6 +387,7 @@ let InvitationsService = InvitationsService_1 = class InvitationsService {
 exports.InvitationsService = InvitationsService;
 exports.InvitationsService = InvitationsService = InvitationsService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        notifications_service_1.NotificationsService])
 ], InvitationsService);
 //# sourceMappingURL=invitations.service.js.map

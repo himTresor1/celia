@@ -29,6 +29,7 @@ interface Profile {
   interests: string[] | null;
   college_verified: boolean | null;
   preferred_locations: string[] | null;
+  preferred_city_ids: string[] | null;
   is_profile_completed: boolean;
 }
 
@@ -105,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         interests: userData.interests || null,
         college_verified: userData.collegeVerified || false,
         preferred_locations: userData.preferredLocations || null,
+        preferred_city_ids: userData.preferredCityIds || null,
         is_profile_completed: userData.profileCompleted || false,
       };
       setProfile(profileData);

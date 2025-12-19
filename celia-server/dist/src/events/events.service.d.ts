@@ -29,6 +29,7 @@ export declare class EventsService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -94,6 +95,7 @@ export declare class EventsService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -144,6 +146,7 @@ export declare class EventsService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -196,8 +199,8 @@ export declare class EventsService {
             };
         } & {
             id: string;
-            userId: string;
             eventId: string;
+            userId: string;
             joinedAt: Date;
         })[];
     } & {
@@ -212,6 +215,7 @@ export declare class EventsService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -247,6 +251,7 @@ export declare class EventsService {
         locationName: string | null;
         locationLat: number | null;
         locationLng: number | null;
+        exactLocation: string | null;
         eventDate: Date | null;
         startTime: Date | null;
         endTime: Date | null;
@@ -280,6 +285,7 @@ export declare class EventsService {
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
@@ -298,8 +304,8 @@ export declare class EventsService {
         };
     } & {
         id: string;
-        userId: string;
         eventId: string;
+        userId: string;
         joinedAt: Date;
     }>;
     leaveEvent(eventId: string, userId: string): Promise<{
@@ -315,8 +321,8 @@ export declare class EventsService {
         };
     } & {
         id: string;
-        userId: string;
         eventId: string;
+        userId: string;
         joinedAt: Date;
     })[]>;
 }

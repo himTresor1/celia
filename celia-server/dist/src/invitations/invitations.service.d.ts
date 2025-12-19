@@ -1,10 +1,12 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvitationDto, BulkInviteDto } from './dto/create-invitation.dto';
 import { UpdateInvitationDto } from './dto/update-invitation.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 export declare class InvitationsService {
     private prisma;
+    private notificationsService;
     private readonly logger;
-    constructor(prisma: PrismaService);
+    constructor(prisma: PrismaService, notificationsService: NotificationsService);
     create(inviterId: string, dto: CreateInvitationDto): Promise<{
         event: {
             host: {
@@ -14,22 +16,23 @@ export declare class InvitationsService {
             };
             category: {
                 id: string;
+                createdAt: Date;
                 name: string;
                 icon: string | null;
-                createdAt: Date;
             };
         } & {
             id: string;
-            name: string;
-            createdAt: Date;
             photoUrls: import("@prisma/client/runtime/library").JsonValue;
+            createdAt: Date;
             updatedAt: Date;
-            hostId: string;
+            name: string;
             description: string | null;
+            hostId: string;
             categoryId: string | null;
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
@@ -57,11 +60,11 @@ export declare class InvitationsService {
         updatedAt: Date;
         status: string;
         eventId: string;
+        inviterId: string;
+        inviteeId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        inviterId: string;
-        inviteeId: string;
     }>;
     bulkCreate(inviterId: string, dto: BulkInviteDto): Promise<{
         message: string;
@@ -77,11 +80,11 @@ export declare class InvitationsService {
             updatedAt: Date;
             status: string;
             eventId: string;
+            inviterId: string;
+            inviteeId: string;
             personalMessage: string | null;
             declineReason: string | null;
             respondedAt: Date | null;
-            inviterId: string;
-            inviteeId: string;
         })[];
         skipped: number;
     }>;
@@ -98,22 +101,23 @@ export declare class InvitationsService {
             };
             category: {
                 id: string;
+                createdAt: Date;
                 name: string;
                 icon: string | null;
-                createdAt: Date;
             };
         } & {
             id: string;
-            name: string;
-            createdAt: Date;
             photoUrls: import("@prisma/client/runtime/library").JsonValue;
+            createdAt: Date;
             updatedAt: Date;
-            hostId: string;
+            name: string;
             description: string | null;
+            hostId: string;
             categoryId: string | null;
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
@@ -136,11 +140,11 @@ export declare class InvitationsService {
         updatedAt: Date;
         status: string;
         eventId: string;
+        inviterId: string;
+        inviteeId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        inviterId: string;
-        inviteeId: string;
     })[]>;
     findEventInvitations(eventId: string, userId: string): Promise<({
         invitee: {
@@ -156,11 +160,11 @@ export declare class InvitationsService {
         updatedAt: Date;
         status: string;
         eventId: string;
+        inviterId: string;
+        inviteeId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        inviterId: string;
-        inviteeId: string;
     })[]>;
     updateStatus(id: string, userId: string, dto: UpdateInvitationDto): Promise<{
         event: {
@@ -171,22 +175,23 @@ export declare class InvitationsService {
             };
             category: {
                 id: string;
+                createdAt: Date;
                 name: string;
                 icon: string | null;
-                createdAt: Date;
             };
         } & {
             id: string;
-            name: string;
-            createdAt: Date;
             photoUrls: import("@prisma/client/runtime/library").JsonValue;
+            createdAt: Date;
             updatedAt: Date;
-            hostId: string;
+            name: string;
             description: string | null;
+            hostId: string;
             categoryId: string | null;
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
@@ -204,11 +209,11 @@ export declare class InvitationsService {
         updatedAt: Date;
         status: string;
         eventId: string;
+        inviterId: string;
+        inviteeId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        inviterId: string;
-        inviteeId: string;
     }>;
     delete(id: string, userId: string): Promise<{
         message: string;

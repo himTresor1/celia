@@ -111,6 +111,7 @@ let AuthService = class AuthService {
                 photoUrls: true,
                 interests: true,
                 preferredLocations: true,
+                preferredCityIds: true,
                 collegeVerified: true,
                 profileCompleted: true,
                 createdAt: true,

@@ -128,13 +128,19 @@ export class UsersService {
     };
 
     // Automatically determine profile completion based on required fields
-    // Required fields: fullName, bio (min 50 chars), collegeName, interests (min 3), photoUrls (min 1), preferredLocations (min 1)
+    // Required fields: fullName, bio (min 50 chars), collegeName, interests (min 3), photoUrls (min 1), preferredCityIds (min 1)
     const finalFullName = dto.fullName ?? user.fullName;
     const finalBio = dto.bio ?? user.bio;
     const finalCollegeName = dto.collegeName ?? user.collegeName;
     const finalInterests = dto.interests ?? user.interests;
     const finalPhotoUrls = dto.photoUrls ?? (user.photoUrls as any[]);
+    const finalPreferredCityIds = dto.preferredCityIds ?? user.preferredCityIds;
     const finalPreferredLocations = dto.preferredLocations ?? user.preferredLocations;
+
+    // Check completion using preferredCityIds (new) or preferredLocations (legacy)
+    const hasPreferredLocations = 
+      (Array.isArray(finalPreferredCityIds) && finalPreferredCityIds.length >= 1) ||
+      (Array.isArray(finalPreferredLocations) && finalPreferredLocations.length >= 1);
 
     const isProfileComplete =
       finalFullName &&
@@ -147,8 +153,7 @@ export class UsersService {
       finalInterests.length >= 3 &&
       Array.isArray(finalPhotoUrls) &&
       finalPhotoUrls.length >= 1 &&
-      Array.isArray(finalPreferredLocations) &&
-      finalPreferredLocations.length >= 1;
+      hasPreferredLocations;
 
     // Only update profileCompleted if explicitly set, or if we can determine it's complete
     if (dto.profileCompleted !== undefined) {
@@ -290,5 +295,12 @@ export class UsersService {
 
       return attendances.map((a) => a.event);
     }
+  }
+
+  async updatePushToken(userId: string, pushToken: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { pushToken },
+    });
   }
 }

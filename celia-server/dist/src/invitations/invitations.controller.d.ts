@@ -14,22 +14,23 @@ export declare class InvitationsController {
             };
             category: {
                 id: string;
+                createdAt: Date;
                 name: string;
                 icon: string | null;
-                createdAt: Date;
             };
         } & {
             id: string;
-            name: string;
-            createdAt: Date;
             photoUrls: import("@prisma/client/runtime/library").JsonValue;
+            createdAt: Date;
             updatedAt: Date;
-            hostId: string;
+            name: string;
             description: string | null;
+            hostId: string;
             categoryId: string | null;
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
@@ -57,11 +58,11 @@ export declare class InvitationsController {
         updatedAt: Date;
         status: string;
         eventId: string;
+        inviterId: string;
+        inviteeId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        inviterId: string;
-        inviteeId: string;
     }>;
     bulkCreate(user: any, dto: BulkInviteDto): Promise<{
         message: string;
@@ -77,11 +78,11 @@ export declare class InvitationsController {
             updatedAt: Date;
             status: string;
             eventId: string;
+            inviterId: string;
+            inviteeId: string;
             personalMessage: string | null;
             declineReason: string | null;
             respondedAt: Date | null;
-            inviterId: string;
-            inviteeId: string;
         })[];
         skipped: number;
     }>;
@@ -98,22 +99,23 @@ export declare class InvitationsController {
             };
             category: {
                 id: string;
+                createdAt: Date;
                 name: string;
                 icon: string | null;
-                createdAt: Date;
             };
         } & {
             id: string;
-            name: string;
-            createdAt: Date;
             photoUrls: import("@prisma/client/runtime/library").JsonValue;
+            createdAt: Date;
             updatedAt: Date;
-            hostId: string;
+            name: string;
             description: string | null;
+            hostId: string;
             categoryId: string | null;
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
@@ -136,11 +138,11 @@ export declare class InvitationsController {
         updatedAt: Date;
         status: string;
         eventId: string;
+        inviterId: string;
+        inviteeId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        inviterId: string;
-        inviteeId: string;
     })[]>;
     findEventInvitations(eventId: string, user: any): Promise<({
         invitee: {
@@ -156,11 +158,11 @@ export declare class InvitationsController {
         updatedAt: Date;
         status: string;
         eventId: string;
+        inviterId: string;
+        inviteeId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        inviterId: string;
-        inviteeId: string;
     })[]>;
     updateStatus(id: string, user: any, dto: UpdateInvitationDto): Promise<{
         event: {
@@ -171,22 +173,23 @@ export declare class InvitationsController {
             };
             category: {
                 id: string;
+                createdAt: Date;
                 name: string;
                 icon: string | null;
-                createdAt: Date;
             };
         } & {
             id: string;
-            name: string;
-            createdAt: Date;
             photoUrls: import("@prisma/client/runtime/library").JsonValue;
+            createdAt: Date;
             updatedAt: Date;
-            hostId: string;
+            name: string;
             description: string | null;
+            hostId: string;
             categoryId: string | null;
             locationName: string | null;
             locationLat: number | null;
             locationLng: number | null;
+            exactLocation: string | null;
             eventDate: Date | null;
             startTime: Date | null;
             endTime: Date | null;
@@ -204,11 +207,11 @@ export declare class InvitationsController {
         updatedAt: Date;
         status: string;
         eventId: string;
+        inviterId: string;
+        inviteeId: string;
         personalMessage: string | null;
         declineReason: string | null;
         respondedAt: Date | null;
-        inviterId: string;
-        inviteeId: string;
     }>;
     delete(id: string, user: any): Promise<{
         message: string;

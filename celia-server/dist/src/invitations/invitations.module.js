@@ -10,11 +10,14 @@ exports.InvitationsModule = void 0;
 const common_1 = require("@nestjs/common");
 const invitations_service_1 = require("./invitations.service");
 const invitations_controller_1 = require("./invitations.controller");
+const prisma_module_1 = require("../prisma/prisma.module");
+const notifications_module_1 = require("../notifications/notifications.module");
 let InvitationsModule = class InvitationsModule {
 };
 exports.InvitationsModule = InvitationsModule;
 exports.InvitationsModule = InvitationsModule = __decorate([
     (0, common_1.Module)({
+        imports: [prisma_module_1.PrismaModule, notifications_module_1.NotificationsModule],
         controllers: [invitations_controller_1.InvitationsController],
         providers: [invitations_service_1.InvitationsService],
         exports: [invitations_service_1.InvitationsService],

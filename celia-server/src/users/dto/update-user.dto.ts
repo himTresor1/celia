@@ -84,11 +84,20 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional({
     example: ['Stanford, CA', 'San Francisco, CA'],
-    description: 'Preferred locations (up to 3)',
+    description: 'Preferred locations (up to 3) - deprecated, use preferredCityIds',
   })
   @IsOptional()
   @IsArray()
   preferredLocations?: string[];
+
+  @ApiPropertyOptional({
+    example: ['city-uuid-1', 'city-uuid-2', 'city-uuid-3'],
+    description: 'Preferred city IDs (up to 3)',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  preferredCityIds?: string[];
 
   @ApiPropertyOptional({
     example: true,

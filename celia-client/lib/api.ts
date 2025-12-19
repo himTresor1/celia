@@ -391,6 +391,43 @@ class ApiClient {
     // Ensure we return an array
     return Array.isArray(data) ? data : [];
   }
+
+  async getCities(search?: string, limit?: number) {
+    const params: any = {};
+    if (search) params.search = search;
+    if (limit) params.limit = limit;
+    const response = await this.client.get('/cities', { params });
+    // Handle both direct array and wrapped response
+    const data = response.data?.data || response.data || [];
+    return Array.isArray(data) ? data : [];
+  }
+
+  async updatePushToken(pushToken: string) {
+    const response = await this.client.patch('/users/push-token', { pushToken });
+    return response.data;
+  }
+
+  async getNotifications(page = 1, limit = 50) {
+    const response = await this.client.get('/notifications', {
+      params: { page, limit },
+    });
+    return response.data?.data || response.data;
+  }
+
+  async markNotificationAsRead(notificationId: string) {
+    const response = await this.client.patch(`/notifications/${notificationId}/read`);
+    return response.data;
+  }
+
+  async markAllNotificationsAsRead() {
+    const response = await this.client.patch('/notifications/read-all');
+    return response.data;
+  }
+
+  async getUnreadNotificationCount() {
+    const response = await this.client.get('/notifications/unread-count');
+    return response.data?.data || response.data;
+  }
 }
 
 export const api = new ApiClient();

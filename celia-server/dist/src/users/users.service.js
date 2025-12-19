@@ -126,7 +126,10 @@ let UsersService = class UsersService {
         const finalCollegeName = dto.collegeName ?? user.collegeName;
         const finalInterests = dto.interests ?? user.interests;
         const finalPhotoUrls = dto.photoUrls ?? user.photoUrls;
+        const finalPreferredCityIds = dto.preferredCityIds ?? user.preferredCityIds;
         const finalPreferredLocations = dto.preferredLocations ?? user.preferredLocations;
+        const hasPreferredLocations = (Array.isArray(finalPreferredCityIds) && finalPreferredCityIds.length >= 1) ||
+            (Array.isArray(finalPreferredLocations) && finalPreferredLocations.length >= 1);
         const isProfileComplete = finalFullName &&
             finalFullName.length > 0 &&
             finalBio &&
@@ -137,8 +140,7 @@ let UsersService = class UsersService {
             finalInterests.length >= 3 &&
             Array.isArray(finalPhotoUrls) &&
             finalPhotoUrls.length >= 1 &&
-            Array.isArray(finalPreferredLocations) &&
-            finalPreferredLocations.length >= 1;
+            hasPreferredLocations;
         if (dto.profileCompleted !== undefined) {
             updatedData.profileCompleted = dto.profileCompleted;
         }
@@ -269,6 +271,12 @@ let UsersService = class UsersService {
             });
             return attendances.map((a) => a.event);
         }
+    }
+    async updatePushToken(userId, pushToken) {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { pushToken },
+        });
     }
 };
 exports.UsersService = UsersService;
