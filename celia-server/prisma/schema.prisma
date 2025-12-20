@@ -281,6 +281,23 @@ model Notification {
   @@map("notifications")
 }
 
+model Otp {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  type      String   // 'signup' | 'college_verification'
+  verified  Boolean  @default(false)
+  expiresAt DateTime @map("expires_at")
+  verifiedAt DateTime? @map("verified_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@index([email])
+  @@index([code])
+  @@index([type])
+  @@index([expiresAt])
+  @@map("otps")
+}
+
 model SignupOtp {
   id        String   @id @default(uuid())
   email     String

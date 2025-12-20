@@ -42,7 +42,8 @@ interface AuthContextType {
   signUp: (
     email: string,
     password: string,
-    fullName: string
+    fullName: string,
+    otpCode?: string
   ) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -160,9 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, otpCode?: string) => {
     try {
-      const response = await api.register({ email, password, fullName });
+      const response = await api.register({ email, password, fullName, otpCode });
 
       // Backend returns 'token', not 'access_token'
       const token = response.token || response.access_token;

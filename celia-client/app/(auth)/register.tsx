@@ -57,36 +57,17 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      // First, register the user
-      const { error: signUpError } = await signUp(
-        email,
-        password,
-        fullName || email.split('@')[0]
-      );
-
-      if (signUpError) {
-        setError(signUpError.message);
-        setLoading(false);
-        return;
-      }
-
-      // After successful registration, explicitly call the API to send OTP
-      // This makes the API call visible in the network tab
-      try {
-        await api.sendSignupOtp(email);
-        // Switch to verification step after OTP is sent
-        setStep('verification');
-      } catch (otpError: any) {
-        setError(
-          otpError.response?.data?.message ||
-            otpError.message ||
-            'Failed to send verification code'
-        );
-      }
-
+      // Only send OTP code, don't register yet
+      await api.sendSignupOtp(email);
+      // Switch to verification step after OTP is sent
+      setStep('verification');
       setLoading(false);
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          'Failed to send verification code'
+      );
       setLoading(false);
     }
   };
@@ -102,16 +83,26 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      await api.verifySignupOtp(email, verificationCode);
+      // Register the user with all information including OTP code
+      const { error: signUpError } = await signUp(
+        email,
+        password,
+        fullName || email.split('@')[0],
+        verificationCode
+      );
 
-      // After successful verification, redirect to profile setup
+      if (signUpError) {
+        setError(signUpError.message);
+        setLoading(false);
+        return;
+      }
+
+      // After successful registration, redirect to profile setup
       // The _layout.tsx will handle redirecting to dashboard if profile is already completed
       router.replace('/profile-setup');
     } catch (err: any) {
       setError(
-        err.response?.data?.message ||
-          err.message ||
-          'Invalid verification code'
+        err.response?.data?.message || err.message || 'Registration failed'
       );
       setLoading(false);
     }

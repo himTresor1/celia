@@ -22,7 +22,9 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "This app uses the camera to take photos for events and profiles.",
         "NSPhotoLibraryUsageDescription": "This app accesses your photos to let you add profile pictures and event images.",
-        "NSPhotoLibraryAddUsageDescription": "This app needs access to save photos to your library."
+        "NSPhotoLibraryAddUsageDescription": "This app needs access to save photos to your library.",
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to help you select event locations on the map.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location to help you select event locations on the map."
       },
       "config": {
         "usesNonExemptEncryption": false
@@ -40,7 +42,9 @@
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES"
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "config": {
         "googleMaps": {
@@ -70,6 +74,14 @@
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
           "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "This app uses your location to help you select event locations on the map.",
+          "locationAlwaysPermission": "This app uses your location to help you select event locations on the map.",
+          "locationWhenInUsePermission": "This app uses your location to help you select event locations on the map."
         }
       ]
     ],

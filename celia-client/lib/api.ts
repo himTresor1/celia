@@ -78,11 +78,12 @@ class ApiClient {
     await AsyncStorage.removeItem('user');
   }
 
-  async register(data: { email: string; password: string; fullName: string }) {
+  async register(data: { email: string; password: string; fullName: string; otpCode?: string }) {
     try {
       console.log('[API] Register request:', {
         email: data.email,
         fullName: data.fullName,
+        hasOtpCode: !!data.otpCode,
         url: `${API_URL}/auth/register`
       });
       const response = await this.client.post('/auth/register', data);
@@ -244,26 +245,56 @@ class ApiClient {
     return response.data;
   }
 
-  async getFriends(userId: string) {
-    const response = await this.client.get('/friends');
-    return response.data;
+  async getFriends(page: number = 1, limit: number = 10) {
+    const response = await this.client.get('/friends', {
+      params: { page, limit },
+    });
+    // Backend response structure: { friends: [...], total, page, limit, pages }
+    const data = response.data?.data || response.data;
+    if (data?.friends) {
+      return data;
+    }
+    return { friends: [], total: 0, page, limit, pages: 0 };
   }
 
-  async sendFriendRequest(fromUserId: string, toUserId: string) {
+  async getFriendRequests(type: 'sent' | 'received' = 'received') {
+    const response = await this.client.get('/friends/requests', {
+      params: { type },
+    });
+    // Backend response is wrapped: { message: "...", data: [...] }
+    const data = response.data?.data || response.data || [];
+    return Array.isArray(data) ? data : [];
+  }
+
+  async getPendingFriendRequests() {
+    const response = await this.client.get('/friends/pending');
+    // Backend response is wrapped: { message: "...", data: [...] }
+    const data = response.data?.data || response.data || [];
+    return Array.isArray(data) ? data : [];
+  }
+
+  async getMutualFriends(userId: string) {
+    const response = await this.client.get(`/friends/mutual/${userId}`);
+    // Backend response is wrapped: { message: "...", data: [...] }
+    const data = response.data?.data || response.data || [];
+    return Array.isArray(data) ? data : [];
+  }
+
+  async sendFriendRequest(toUserId: string, message?: string) {
     const response = await this.client.post('/friends/request', {
-      fromUserId,
       toUserId,
+      message,
     });
     return response.data;
   }
 
-  async acceptFriendRequest(friendshipId: string) {
-    const response = await this.client.post(`/friends/${friendshipId}/accept`);
+  async acceptFriendRequest(requestId: string) {
+    const response = await this.client.post(`/friends/request/${requestId}/accept`);
     return response.data;
   }
 
-  async rejectFriendRequest(friendshipId: string) {
-    const response = await this.client.delete(`/friends/${friendshipId}`);
+  async rejectFriendRequest(requestId: string) {
+    const response = await this.client.post(`/friends/request/${requestId}/decline`);
     return response.data;
   }
 
@@ -358,6 +389,27 @@ class ApiClient {
     return response.data;
   }
 
+  async getSmartSuggestions(filters?: any) {
+    const response = await this.client.get('/recommendations/suggestions', { params: filters });
+    // Backend response is wrapped: { message: "...", data: [...] }
+    const data = response.data?.data || response.data || [];
+    return Array.isArray(data) ? data : [];
+  }
+
+  async getFriendSuggestions(limit: number = 50) {
+    try {
+      const response = await this.client.get('/friends/suggestions', {
+        params: { limit },
+      });
+      // Backend response is wrapped by TransformInterceptor: { message: "...", data: [...] }
+      const data = response.data?.data || response.data || [];
+      return Array.isArray(data) ? data : [];
+    } catch (error: any) {
+      console.error('[API] Get friend suggestions error:', error);
+      throw error;
+    }
+  }
+
   async getUserStats(userId: string) {
     const response = await this.client.get(`/users/${userId}/stats`);
     // Backend response is wrapped: { message: "...", data: { ... } }
@@ -431,7 +483,12 @@ class ApiClient {
 
   async sendSignupOtp(email: string) {
     try {
-      const response = await this.client.post('/auth/send-signup-otp', { email });
+      // Use /otp/send endpoint which doesn't require user to exist
+      // This sends OTP for signup before user registration
+      const response = await this.client.post('/otp/send', { 
+        email, 
+        type: 'signup' 
+      });
       return response.data;
     } catch (error: any) {
       console.error('[API] Send signup OTP error:', error);
@@ -445,6 +502,32 @@ class ApiClient {
       return response.data;
     } catch (error: any) {
       console.error('[API] Verify signup OTP error:', error);
+      throw error;
+    }
+  }
+
+  async sendCollegeVerificationOtp(email: string) {
+    try {
+      const response = await this.client.post('/otp/send', {
+        email,
+        type: 'college_verification',
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Send college verification OTP error:', error);
+      throw error;
+    }
+  }
+
+  async verifyCollegeOtp(email: string, code: string) {
+    try {
+      const response = await this.client.post('/otp/verify-college', {
+        email,
+        code,
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Verify college OTP error:', error);
       throw error;
     }
   }

@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import WebDatePicker from '@/components/WebDatePicker';
+import LocationPicker, { SelectedLocation } from '@/components/LocationPicker';
 import { formatDate, formatTime } from '@/lib/timeUtils';
 
 interface EventCategory {
@@ -62,6 +63,9 @@ export default function CreateScreen() {
     return defaultEnd;
   };
   const [locationName, setLocationName] = useState('');
+  const [locationLat, setLocationLat] = useState<number | null>(null);
+  const [locationLng, setLocationLng] = useState<number | null>(null);
+  const [locationPlaceId, setLocationPlaceId] = useState<string | null>(null);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] =
     useState<EventCategory | null>(null);
@@ -193,11 +197,6 @@ export default function CreateScreen() {
         setError(errorMsg);
         return { isValid: false, errorMessage: errorMsg };
       }
-      if (!locationName.trim()) {
-        const errorMsg = 'Please enter location';
-        setError(errorMsg);
-        return { isValid: false, errorMessage: errorMsg };
-      }
       return { isValid: true, errorMessage: null };
     }
 
@@ -209,6 +208,15 @@ export default function CreateScreen() {
       }
       if (!selectedCategory) {
         const errorMsg = 'Please select an event category';
+        setError(errorMsg);
+        return { isValid: false, errorMessage: errorMsg };
+      }
+      return { isValid: true, errorMessage: null };
+    }
+
+    if (step === 4) {
+      if (!locationName.trim() || locationLat === null || locationLng === null) {
+        const errorMsg = 'Please select a location on the map';
         setError(errorMsg);
         return { isValid: false, errorMessage: errorMsg };
       }
@@ -254,6 +262,9 @@ export default function CreateScreen() {
         startTime: startTime.toISOString(),
         endTime: endTimeValue.toISOString(),
         locationName,
+        locationLat: locationLat || undefined,
+        locationLng: locationLng || undefined,
+        exactLocation: locationPlaceId || undefined,
         categoryId: selectedCategory?.id || undefined,
         interestTags: selectedInterests,
         capacityLimit: capacityLimit ? parseInt(capacityLimit) : null,
@@ -294,6 +305,9 @@ export default function CreateScreen() {
     setStartTime(new Date());
     setEndTime(null);
     setLocationName('');
+    setLocationLat(null);
+    setLocationLng(null);
+    setLocationPlaceId(null);
     setPhotoUrls([]);
     setSelectedCategory(null);
     setSelectedInterests([]);
@@ -304,9 +318,19 @@ export default function CreateScreen() {
     setStep(1);
   };
 
+  const handleLocationSelect = (location: SelectedLocation) => {
+    setLocationName(location.name);
+    setLocationLat(location.latitude);
+    setLocationLng(location.longitude);
+    if (location.placeId) {
+      setLocationPlaceId(location.placeId);
+    }
+    // Location is confirmed, user can now proceed with Next button
+  };
+
   const renderProgressBar = () => (
     <View style={styles.progressBar}>
-      {[1, 2, 3].map((s) => (
+      {[1, 2, 3, 4].map((s) => (
         <View
           key={s}
           style={[styles.progressDot, step >= s && styles.progressDotActive]}
@@ -321,18 +345,48 @@ export default function CreateScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.header}>
-        <Text style={styles.stepText}>Step {step} of 3</Text>
+        <Text style={styles.stepText}>Step {step} of 4</Text>
         {renderProgressBar()}
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
+      {step === 3 ? (
+        // Location step - full screen map, no ScrollView
+        <View style={styles.content}>
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>Location</Text>
+            <Text style={styles.stepSubtitle}>Select where your event will take place</Text>
 
-        {step === 1 && (
+            <View style={styles.locationPickerContainer}>
+              <LocationPicker
+                onLocationSelect={handleLocationSelect}
+                initialLocation={
+                  locationName && locationLat !== null && locationLng !== null
+                    ? {
+                        name: locationName,
+                        latitude: locationLat,
+                        longitude: locationLng,
+                        placeId: locationPlaceId || undefined,
+                      }
+                    : null
+                }
+              />
+            </View>
+          </View>
+        </View>
+      ) : (
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          {step === 1 && (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Event Details</Text>
             <Text style={styles.stepSubtitle}>Tell us about your event</Text>
@@ -436,22 +490,6 @@ export default function CreateScreen() {
                   )}
                 </View>
               </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Location *</Text>
-              <View style={styles.iconInput}>
-                <MapPin size={20} color="#666" />
-                <TextInput
-                  style={styles.iconInputField}
-                  placeholder="Where is this happening?"
-                  value={locationName}
-                  onChangeText={setLocationName}
-                />
-              </View>
-              <Text style={styles.helperText}>
-                Map integration coming soon!
-              </Text>
             </View>
 
             <View style={styles.inputGroup}>
@@ -601,7 +639,7 @@ export default function CreateScreen() {
           </View>
         )}
 
-        {step === 3 && (
+          {step === 4 && (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Final Settings</Text>
             <Text style={styles.stepSubtitle}>Set capacity and visibility</Text>
@@ -701,8 +739,9 @@ export default function CreateScreen() {
               )}
             </View>
           </View>
-        )}
-      </ScrollView>
+          )}
+        </ScrollView>
+      )}
 
       <View style={styles.footer}>
         {step > 1 && (
@@ -714,7 +753,7 @@ export default function CreateScreen() {
           </TouchableOpacity>
         )}
 
-        {step < 3 ? (
+        {step < 4 ? (
           <TouchableOpacity
             style={[styles.nextButton, step === 1 && styles.nextButtonFull]}
             onPress={handleNext}
@@ -1120,5 +1159,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  locationPickerContainer: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginTop: 16,
   },
 });

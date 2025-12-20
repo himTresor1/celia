@@ -108,6 +108,17 @@ export default function ProfileScreen() {
 
         <TouchableOpacity
           style={styles.listsButton}
+          onPress={() => router.push('/(tabs)/friends')}
+        >
+          <View style={styles.listsButtonContent}>
+            <Users size={24} color="#3AFF6E" />
+            <Text style={styles.listsButtonText}>Friends & Requests</Text>
+          </View>
+          <ChevronRight size={24} color="#666" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.listsButton}
           onPress={() => router.push('/profile/lists')}
         >
           <View style={styles.listsButtonContent}>
