@@ -3,35 +3,24 @@ import {
   ConflictException,
   UnauthorizedException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { OtpService } from '../otp/otp.service';
+import { SendSignupOtpDto } from './dto/send-signup-otp.dto';
+import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private otpService: OtpService,
+    private emailService: EmailService,
   ) {}
-
-  async sendSignupOtp(email: string) {
-    // Check if user already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      throw new ConflictException('User with this email already exists');
-    }
-
-    await this.otpService.sendOtp(email, 'signup');
-    return { message: 'OTP sent successfully' };
-  }
 
   async register(dto: RegisterDto & { otpCode?: string }) {
     console.log('[AUTH] Register attempt:', { email: dto.email, fullName: dto.fullName });
@@ -47,11 +36,26 @@ export class AuthService {
 
     // Verify OTP if provided
     if (dto.otpCode) {
-      try {
-        await this.otpService.verifyOtp(dto.email, dto.otpCode, 'signup');
-      } catch (error) {
+      const otp = await this.prisma.signupOtp.findFirst({
+        where: {
+          email: dto.email,
+          code: dto.otpCode,
+          verified: false,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      if (!otp || new Date() > otp.expiresAt) {
         throw new BadRequestException('Invalid or expired OTP code');
       }
+
+      // Mark OTP as verified
+      await this.prisma.signupOtp.update({
+        where: { id: otp.id },
+        data: { verified: true },
+      });
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -160,6 +164,76 @@ export class AuthService {
     });
 
     return user;
+  }
+
+  async sendSignupOtp(dto: SendSignupOtpDto) {
+    console.log('[AUTH] Sending signup OTP to:', dto.email);
+
+    // Check if user exists
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Generate 6-digit OTP
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10); // OTP expires in 10 minutes
+
+    // Delete any existing OTPs for this email
+    await this.prisma.signupOtp.deleteMany({
+      where: { email: dto.email },
+    });
+
+    // Create new OTP
+    await this.prisma.signupOtp.create({
+      data: {
+        email: dto.email,
+        code,
+        expiresAt,
+      },
+    });
+
+    // Send OTP via email
+    await this.emailService.sendSignupOtpEmail(dto.email, code);
+
+    console.log('[AUTH] OTP sent successfully to:', dto.email);
+    return { message: 'OTP sent successfully' };
+  }
+
+  async verifySignupOtp(dto: VerifySignupOtpDto) {
+    console.log('[AUTH] Verifying OTP for:', dto.email);
+
+    const otp = await this.prisma.signupOtp.findFirst({
+      where: {
+        email: dto.email,
+        code: dto.code,
+        verified: false,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!otp) {
+      throw new BadRequestException('Invalid or expired OTP');
+    }
+
+    if (new Date() > otp.expiresAt) {
+      throw new BadRequestException('OTP has expired');
+    }
+
+    // Mark OTP as verified
+    await this.prisma.signupOtp.update({
+      where: { id: otp.id },
+      data: { verified: true },
+    });
+
+    console.log('[AUTH] OTP verified successfully for:', dto.email);
+    return { message: 'OTP verified successfully' };
   }
 
   private generateToken(userId: string, email: string) {

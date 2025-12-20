@@ -338,6 +338,145 @@ export class FriendsService {
     });
   }
 
+  async getFriendSuggestions(userId: string, limit: number = 50): Promise<any[]> {
+    // TEMPORARY: Return all users for testing purposes
+    // TODO: Replace with proper recommendation algorithm later
+    
+    // Get current user profile
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        collegeId: true,
+        interests: true,
+        attractivenessScore: true,
+        gender: true,
+        age: true,
+      },
+    });
+
+    if (!currentUser) return [];
+
+    // Get all users that the current user has any relationship with (friends or pending requests)
+    const existingRelationships = await this.prisma.friendship.findMany({
+      where: {
+        OR: [{ user1Id: userId }, { user2Id: userId }],
+      },
+      select: {
+        user1Id: true,
+        user2Id: true,
+      },
+    });
+
+    // Extract all user IDs to exclude
+    const excludedUserIds = new Set<string>([userId]);
+    existingRelationships.forEach((rel) => {
+      excludedUserIds.add(rel.user1Id);
+      excludedUserIds.add(rel.user2Id);
+    });
+
+    // TEMPORARY: Get ALL users (excluding current user and existing relationships)
+    // This is for testing purposes only - will be replaced with proper recommendations
+    const allUsers = await this.prisma.user.findMany({
+      where: {
+        id: { notIn: Array.from(excludedUserIds) },
+        profileCompleted: true,
+      },
+      select: {
+        id: true,
+        fullName: true,
+        avatarUrl: true,
+        photoUrls: true,
+        collegeName: true,
+        collegeId: true,
+        interests: true,
+        attractivenessScore: true,
+        gender: true,
+        age: true,
+        bio: true,
+        lastActiveDate: true,
+      },
+      take: limit || 100, // Allow more users for testing
+      orderBy: {
+        createdAt: 'desc', // Show newest users first
+      },
+    });
+
+    // Calculate mutual friends count for each user
+    const usersWithMutualFriends = await Promise.all(
+      allUsers.map(async (user) => {
+        const mutualCount = await this.getMutualFriendsCount(userId, user.id);
+        return {
+          ...user,
+          mutualFriendsCount: mutualCount,
+        };
+      }),
+    );
+
+    // Return all users (temporary for testing)
+    return usersWithMutualFriends;
+  }
+
+  private async calculateSuggestionScore(
+    currentUser: any,
+    candidate: any,
+    currentUserId: string,
+  ): Promise<number> {
+    let score = 0;
+
+    // 1. Shared Interests (Highest Priority - as user requested)
+    if (currentUser.interests && candidate.interests) {
+      const sharedInterests = currentUser.interests.filter((interest: string) =>
+        candidate.interests.includes(interest),
+      );
+      // More shared interests = higher score (up to 50 points)
+      score += Math.min(50, sharedInterests.length * 10);
+    }
+
+    // 2. Same College (30 points)
+    if (currentUser.collegeId === candidate.collegeId && currentUser.collegeId) {
+      score += 30;
+    }
+
+    // 3. Mutual Friends (up to 40 points)
+    const mutualCount = await this.getMutualFriendsCount(currentUserId, candidate.id);
+    score += Math.min(40, mutualCount * 8);
+
+    // 4. Similar Attractiveness Score (15 points if within 10 points)
+    if (currentUser.attractivenessScore && candidate.attractivenessScore) {
+      const scoreDiff = Math.abs(
+        currentUser.attractivenessScore - candidate.attractivenessScore,
+      );
+      if (scoreDiff <= 10) {
+        score += 15;
+      }
+    }
+
+    // 5. Active User (10 points if active today)
+    if (candidate.lastActiveDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const lastActive = new Date(candidate.lastActiveDate);
+      lastActive.setHours(0, 0, 0, 0);
+
+      if (lastActive.getTime() === today.getTime()) {
+        score += 10;
+      }
+    }
+
+    // 6. Has Bio (5 points)
+    if (candidate.bio && candidate.bio.trim().length > 0) {
+      score += 5;
+    }
+
+    return score;
+  }
+
+  private async getMutualFriendsCount(userId: string, targetUserId: string): Promise<number> {
+    const mutualFriends = await this.getMutualFriends(userId, targetUserId);
+    return mutualFriends.length;
+  }
+
   async getMutualFriends(user1Id: string, user2Id: string): Promise<string[]> {
     const user1Friends = await this.getFriendIds(user1Id);
     const user2Friends = await this.getFriendIds(user2Id);

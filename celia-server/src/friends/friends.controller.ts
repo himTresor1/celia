@@ -148,4 +148,31 @@ export class FriendsController {
     const areFriends = await this.friendsService.areFriends(user.sub, userId);
     return { areFriends };
   }
+
+  @Get('suggestions')
+  @ApiOperation({ summary: 'Get friend suggestions based on interests and compatibility' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of suggestions to return (default: 50)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of friend suggestions',
+  })
+  async getFriendSuggestions(
+    @CurrentUser() user: any,
+    @Query('limit') limit?: string,
+  ) {
+    const userId = user.id || user.sub;
+    if (!userId) {
+      throw new Error('User ID not found');
+    }
+    const suggestions = await this.friendsService.getFriendSuggestions(
+      userId,
+      limit ? parseInt(limit) : 50,
+    );
+    return suggestions;
+  }
 }

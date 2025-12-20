@@ -46,9 +46,6 @@ export default function ProfileSetupScreen() {
   const [collegeEmailSent, setCollegeEmailSent] = useState(false);
   const [collegeEmailVerified, setCollegeEmailVerified] = useState(false);
   const [collegeOtp, setCollegeOtp] = useState('');
-  const [generatedCollegeOtp, setGeneratedCollegeOtp] = useState<string | null>(
-    null
-  );
   const [sendingCollegeOtp, setSendingCollegeOtp] = useState(false);
   const [collegeOtpError, setCollegeOtpError] = useState<string | null>(null);
   const [showCollegeVerificationModal, setShowCollegeVerificationModal] =
@@ -57,9 +54,13 @@ export default function ProfileSetupScreen() {
     null
   );
   const [preferredCityIds, setPreferredCityIds] = useState<string[]>([]);
-  const [selectedCities, setSelectedCities] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedCities, setSelectedCities] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [citySearch, setCitySearch] = useState('');
-  const [citySearchResults, setCitySearchResults] = useState<Array<{ id: string; name: string }>>([]);
+  const [citySearchResults, setCitySearchResults] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [loadingCities, setLoadingCities] = useState(false);
 
@@ -310,7 +311,7 @@ export default function ProfileSetupScreen() {
     return true;
   };
 
-  const handleSendCollegeVerificationCode = () => {
+  const handleSendCollegeVerificationCode = async () => {
     if (!selectedCollege) {
       setCollegeEmailError('Please select your college first');
       return;
@@ -344,9 +345,7 @@ export default function ProfileSetupScreen() {
     setSendingCollegeOtp(true);
 
     try {
-      // For now we generate a local OTP. In production this would be sent via email.
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedCollegeOtp(code);
+      await api.sendCollegeVerificationOtp(email);
       setCollegeEmailSent(true);
       setCollegeOtp('');
       setCollegeOtpError(null);
@@ -354,15 +353,22 @@ export default function ProfileSetupScreen() {
 
       Alert.alert(
         'Verification code sent',
-        `Enter the 6-digit code we sent to ${email}.\n\n(Dev note: in this build the code is ${code}. In production this will be emailed to the user.)`
+        `Enter the 6-digit code we sent to ${email}.`
+      );
+    } catch (err: any) {
+      console.error('Error sending college verification OTP:', err);
+      setCollegeEmailError(
+        err.response?.data?.message ||
+          err.message ||
+          'Failed to send verification code. Please try again.'
       );
     } finally {
       setSendingCollegeOtp(false);
     }
   };
 
-  const handleVerifyCollegeOtp = () => {
-    if (!generatedCollegeOtp) {
+  const handleVerifyCollegeOtp = async () => {
+    if (!collegeEmailSent) {
       setCollegeOtpError('Please request a verification code first');
       return;
     }
@@ -372,16 +378,31 @@ export default function ProfileSetupScreen() {
       return;
     }
 
-    if (collegeOtp !== generatedCollegeOtp) {
-      setCollegeOtpError('Incorrect code. Please try again.');
+    const email = collegeEmail.trim().toLowerCase();
+    if (!email) {
+      setCollegeOtpError('Email is required');
       return;
     }
 
     setCollegeOtpError(null);
-    setCollegeEmailVerified(true);
-    setGeneratedCollegeOtp(null);
+    setSendingCollegeOtp(true);
 
-    Alert.alert('Verified', 'Your college email has been verified.');
+    try {
+      await api.verifyCollegeOtp(email, collegeOtp);
+      setCollegeEmailVerified(true);
+      setCollegeOtp('');
+
+      Alert.alert('Verified', 'Your college email has been verified.');
+    } catch (err: any) {
+      console.error('Error verifying college OTP:', err);
+      setCollegeOtpError(
+        err.response?.data?.message ||
+          err.message ||
+          'Invalid code. Please try again.'
+      );
+    } finally {
+      setSendingCollegeOtp(false);
+    }
   };
 
   const validateStep = () => {
@@ -666,7 +687,6 @@ export default function ProfileSetupScreen() {
                     setCollegeEmail('');
                     setCollegeEmailSent(false);
                     setCollegeOtp('');
-                    setGeneratedCollegeOtp(null);
                     setCollegeOtpError(null);
                     setCollegeEmailError(null);
                     setCollegeEmailVerified(false);
@@ -710,7 +730,11 @@ export default function ProfileSetupScreen() {
                   }}
                 />
                 {loadingCities && (
-                  <ActivityIndicator size="small" color="#3AFF6E" style={{ marginRight: 8 }} />
+                  <ActivityIndicator
+                    size="small"
+                    color="#3AFF6E"
+                    style={{ marginRight: 8 }}
+                  />
                 )}
               </View>
 
@@ -729,13 +753,16 @@ export default function ProfileSetupScreen() {
                         <Text
                           style={[
                             styles.cityDropdownText,
-                            preferredCityIds.includes(city.id) && styles.cityDropdownTextDisabled,
+                            preferredCityIds.includes(city.id) &&
+                              styles.cityDropdownTextDisabled,
                           ]}
                         >
                           {city.name}
                         </Text>
                         {preferredCityIds.includes(city.id) && (
-                          <Text style={styles.cityDropdownSelected}>✓ Selected</Text>
+                          <Text style={styles.cityDropdownSelected}>
+                            ✓ Selected
+                          </Text>
                         )}
                       </TouchableOpacity>
                     )}
@@ -746,14 +773,20 @@ export default function ProfileSetupScreen() {
                 </View>
               )}
 
-              {citySearch.trim().length > 0 && citySearchResults.length === 0 && !loadingCities && (
-                <Text style={styles.helperText}>No cities found. Try a different search.</Text>
-              )}
+              {citySearch.trim().length > 0 &&
+                citySearchResults.length === 0 &&
+                !loadingCities && (
+                  <Text style={styles.helperText}>
+                    No cities found. Try a different search.
+                  </Text>
+                )}
             </View>
 
             {selectedCities.length > 0 && (
               <View style={styles.locationsList}>
-                <Text style={styles.label}>Selected Cities ({selectedCities.length}/3)</Text>
+                <Text style={styles.label}>
+                  Selected Cities ({selectedCities.length}/3)
+                </Text>
                 {selectedCities.map((city) => (
                   <View key={city.id} style={styles.locationChip}>
                     <MapPin size={16} color="#3AFF6E" />
@@ -924,15 +957,19 @@ export default function ProfileSetupScreen() {
                       <TouchableOpacity
                         style={[
                           styles.modalVerifyButton,
-                          !collegeOtp.trim() &&
+                          (!collegeOtp.trim() || sendingCollegeOtp) &&
                             styles.modalVerifyButtonDisabled,
                         ]}
                         onPress={handleVerifyCollegeOtp}
-                        disabled={!collegeOtp.trim()}
+                        disabled={!collegeOtp.trim() || sendingCollegeOtp}
                       >
-                        <Text style={styles.modalVerifyButtonText}>
-                          Verify Code
-                        </Text>
+                        {sendingCollegeOtp ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text style={styles.modalVerifyButtonText}>
+                            Verify Code
+                          </Text>
+                        )}
                       </TouchableOpacity>
                     </View>
                   </View>

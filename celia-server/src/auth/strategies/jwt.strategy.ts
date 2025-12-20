@@ -46,9 +46,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user.id) {
       console.error('[JwtStrategy] User object missing id! Payload:', payload);
       // Fallback to payload.sub if id is somehow missing
-      return { ...user, id: payload.sub };
+      return { ...user, id: payload.sub, sub: payload.sub };
     }
 
-    return user;
+    // Include sub from JWT payload for consistency with controllers that use user.sub
+    return { ...user, sub: payload.sub };
   }
 }
