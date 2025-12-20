@@ -2,21 +2,38 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { OtpService } from '../otp/otp.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private otpService: OtpService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async sendSignupOtp(email: string) {
+    // Check if user already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    await this.otpService.sendOtp(email, 'signup');
+    return { message: 'OTP sent successfully' };
+  }
+
+  async register(dto: RegisterDto & { otpCode?: string }) {
     console.log('[AUTH] Register attempt:', { email: dto.email, fullName: dto.fullName });
 
     const existingUser = await this.prisma.user.findUnique({
@@ -26,6 +43,15 @@ export class AuthService {
     if (existingUser) {
       console.log('[AUTH] Register failed - User exists:', dto.email);
       throw new ConflictException('User with this email already exists');
+    }
+
+    // Verify OTP if provided
+    if (dto.otpCode) {
+      try {
+        await this.otpService.verifyOtp(dto.email, dto.otpCode, 'signup');
+      } catch (error) {
+        throw new BadRequestException('Invalid or expired OTP code');
+      }
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -41,6 +67,7 @@ export class AuthService {
           interests: [],
           preferredLocations: [],
           profileCompleted: false, // Will be completed via profile-setup screen
+          emailVerified: !!dto.otpCode, // Mark as verified if OTP was provided
         },
         select: {
           id: true,

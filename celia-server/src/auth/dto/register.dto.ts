@@ -28,4 +28,12 @@ export class RegisterDto {
   })
   @IsString()
   fullName: string;
+
+  @ApiProperty({
+    example: '123456',
+    description: '6-digit OTP code received via email (optional but recommended)',
+    required: false,
+  })
+  @IsString()
+  otpCode?: string;
 }

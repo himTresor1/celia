@@ -1,13 +1,15 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ScoringService } from '../scoring/scoring.service';
+import { OtpService } from '../otp/otp.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private prisma: PrismaService,
     private scoring: ScoringService,
+    private otpService: OtpService,
   ) {}
 
   async findAll(search?: string, interests?: string[], college?: string) {
@@ -302,5 +304,43 @@ export class UsersService {
       where: { id: userId },
       data: { pushToken },
     });
+  }
+
+  async sendCollegeVerificationOtp(userId: string, email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.otpService.sendOtp(email, 'college_verification');
+    return { message: 'OTP sent successfully' };
+  }
+
+  async verifyCollegeEmail(userId: string, email: string, otpCode: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify OTP
+    try {
+      await this.otpService.verifyOtp(email, otpCode, 'college_verification');
+    } catch (error) {
+      throw new BadRequestException('Invalid or expired OTP code');
+    }
+
+    // Update user's college verification status
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { collegeVerified: true },
+    });
+
+    return { message: 'College email verified successfully', collegeVerified: true };
   }
 }
