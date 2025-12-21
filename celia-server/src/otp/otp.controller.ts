@@ -37,13 +37,31 @@ export class OtpController {
       type: 'object',
       properties: {
         message: { type: 'string', example: 'OTP sent successfully' },
-        expiresAt: { type: 'string', format: 'date-time' },
+        code: {
+          type: 'string',
+          example: '123456',
+          description: 'The OTP code',
+        },
+        expiresAt: {
+          type: 'string',
+          format: 'date-time',
+          description: 'When the OTP expires',
+        },
       },
     },
   })
-  async sendOtp(@Body() dto: { email: string; type: 'signup' | 'college_verification' }) {
-    await this.otpService.sendOtp(dto.email, dto.type);
-    return { message: 'OTP sent successfully' };
+  async sendOtp(
+    @Body() dto: { email: string; type: 'signup' | 'college_verification' },
+  ) {
+    const { code, expiresAt } = await this.otpService.sendOtp(
+      dto.email,
+      dto.type,
+    );
+    return {
+      message: 'OTP sent successfully',
+      code,
+      expiresAt,
+    };
   }
 
   @Post('verify')
@@ -80,8 +98,19 @@ export class OtpController {
       },
     },
   })
-  async verifyOtp(@Body() dto: { email: string; code: string; type: 'signup' | 'college_verification' }) {
-    const verified = await this.otpService.verifyOtp(dto.email, dto.code, dto.type);
+  async verifyOtp(
+    @Body()
+    dto: {
+      email: string;
+      code: string;
+      type: 'signup' | 'college_verification';
+    },
+  ) {
+    const verified = await this.otpService.verifyOtp(
+      dto.email,
+      dto.code,
+      dto.type,
+    );
     return { verified };
   }
 
@@ -112,8 +141,11 @@ export class OtpController {
     @CurrentUser() user: any,
     @Body() dto: { email: string; code: string },
   ) {
-    await this.otpService.verifyOtp(dto.email, dto.code, 'college_verification');
+    await this.otpService.verifyOtp(
+      dto.email,
+      dto.code,
+      'college_verification',
+    );
     return { message: 'College email verified successfully' };
   }
 }
-

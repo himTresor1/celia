@@ -4,6 +4,9 @@ require File.join(File.dirname(`node --print "require.resolve('react-native/pack
 require 'json'
 podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
 
+# Pin Mapbox Maps SDK to v10 for compatibility with @rnmapbox/maps 10.2.10
+$RNMapboxMapsVersion = '~> 10.4.3'
+
 ENV['RCT_NEW_ARCH_ENABLED'] ||= '0' if podfile_properties['newArchEnabled'] == 'false'
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] ||= podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
 ENV['RCT_USE_RN_DEP'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true' && podfile_properties['newArchEnabled'] != 'false'
@@ -48,5 +51,98 @@ target 'CELIA' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => podfile_properties['apple.ccacheEnabled'] == 'true',
     )
+    
+    # Fix for "Multiple commands produce Assets.car" error
+    # The issue: Both the main app's Images.xcassets and CocoaPods are trying to generate Assets.car
+    # Solution: Modify resources script, build phases, and project file to prevent Assets.car generation
+    
+    begin
+      # Step 1: Modify the generated resources script to completely skip asset catalog compilation
+      resources_script_path = File.join(installer.sandbox.root, 'Target Support Files/Pods-CELIA/Pods-CELIA-resources.sh')
+      if File.exist?(resources_script_path)
+        script_content = File.read(resources_script_path)
+        modified_script = script_content.lines.map do |line|
+          # Comment out ALL actool commands (they compile asset catalogs)
+          if line.include?('actool')
+            "# #{line.strip} # Disabled to prevent Assets.car conflict\n"
+          # Comment out any references to Assets.car
+          elsif line.include?('Assets.car') && !line.strip.start_with?('#')
+            "# #{line.strip} # Disabled to prevent Assets.car conflict\n"
+          # Comment out any copy commands involving Assets.car
+          elsif line.include?('cp ') && line.include?('Assets.car')
+            "# #{line.strip} # Disabled to prevent Assets.car conflict\n"
+          else
+            line
+          end
+        end.join
+        if modified_script != script_content
+          File.write(resources_script_path, modified_script)
+          puts "✓ Modified Pods-CELIA-resources.sh to prevent Assets.car compilation"
+        end
+      end
+      
+      # Step 2: Remove Assets.car from all build phase output paths
+      installer.aggregate_targets.each do |aggregate_target|
+        begin
+          aggregate_target.user_project.targets.each do |target|
+            if target.name == 'CELIA'
+              target.build_phases.each do |phase|
+                if phase.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase)
+                  # Remove Assets.car from output paths
+                  if phase.respond_to?(:output_paths) && phase.output_paths
+                    original_paths = phase.output_paths.dup
+                    phase.output_paths = phase.output_paths.reject { |path| path.to_s.include?('Assets.car') }
+                    if phase.output_paths != original_paths
+                      puts "✓ Removed Assets.car from #{phase.name} output paths"
+                    end
+                  end
+                end
+              end
+            end
+          end
+          
+          # Save the project
+          aggregate_target.user_project.save
+        rescue => e
+          puts "Warning: Failed to process aggregate target: #{e.message}"
+        end
+      end
+      
+      # Step 3: Directly modify project.pbxproj file to remove ALL Assets.car references
+      installer.aggregate_targets.each do |aggregate_target|
+        begin
+          project_dir = aggregate_target.user_project.path
+          project_file = File.join(project_dir, 'project.pbxproj')
+          if File.exist?(project_file) && File.file?(project_file)
+            project_content = File.read(project_file)
+            modified_content = project_content
+            
+            # Remove Assets.car from output paths (multiple patterns)
+            modified_content = modified_content.gsub(
+              %r{\t\t\t\t"\$\{TARGET_BUILD_DIR\}/\$\{UNLOCALIZED_RESOURCES_FOLDER_PATH\}/Assets\.car",?\n},
+              ''
+            )
+            modified_content = modified_content.gsub(
+              %r{\t\t\t\t"\$\{BUILT_PRODUCTS_DIR\}/\$\{UNLOCALIZED_RESOURCES_FOLDER_PATH\}/Assets\.car",?\n},
+              ''
+            )
+            modified_content = modified_content.gsub(
+              %r{\t\t\t\t"\$\{TARGET_BUILD_DIR\}/\$\{CONTENTS_FOLDER_PATH\}/Assets\.car",?\n},
+              ''
+            )
+            
+            if modified_content != project_content
+              File.write(project_file, modified_content)
+              puts "✓ Removed Assets.car from project.pbxproj"
+            end
+          end
+        rescue => e
+          puts "Warning: Failed to modify project.pbxproj: #{e.message}"
+        end
+      end
+    rescue => e
+      puts "Warning: Error in post_install hook: #{e.message}"
+      puts e.backtrace.first(5).join("\n")
+    end
   end
 end
