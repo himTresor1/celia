@@ -83,6 +83,12 @@
           "locationWhenInUsePermission": "This app uses your location to help you select event locations on the map."
         }
       ],
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsToken": "sk.eyJ1IjoiZWxvaW1hbiIsImEiOiJjbWplbTZkYTIwaTljM2NzbHF2NW11c28xIn0.mNYoYxigf376xbgpFk9oew"
+        }
+      ],
       "@react-native-community/datetimepicker"
     ],
     "experiments": {

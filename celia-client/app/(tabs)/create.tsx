@@ -879,7 +879,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   stepContainer: {
-    gap: 20,
+    gap: 8,
   },
   stepTitle: {
     fontSize: 28,
@@ -1093,6 +1093,7 @@ const styles = StyleSheet.create({
     padding: 24,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
+    backgroundColor: '#fff'
   },
   backButton: {
     flex: 1,
@@ -1162,10 +1163,14 @@ const styles = StyleSheet.create({
   },
   locationPickerContainer: {
     flex: 1,
+    width: '100%',
+    height: '80%',
+    minHeight: 450,
     borderRadius: 12,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#e0e0e0',
     marginTop: 16,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
   },
 });

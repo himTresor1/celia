@@ -16,25 +16,24 @@ import Constants from 'expo-constants';
 import { MapPin, Search, X, Navigation } from 'lucide-react-native';
 import axios from 'axios';
 
-// Import Mapbox using platform-specific files
-// Metro will automatically use .native.ts on iOS/Android and .web.ts on web
-import { Mapbox, Camera, PointAnnotation } from './MapboxLoader';
+// Import Mapbox components with proper type safety
+const { Mapbox, Camera, PointAnnotation } = Platform.select({
+  native: require('./MapboxLoader.native'),
+  default: { 
+    Mapbox: { 
+      MapView: null, 
+      setAccessToken: () => {},
+      StyleURL: { Street: 'mapbox://styles/mapbox/streets-v11' }
+    }, 
+    Camera: null, 
+    PointAnnotation: null 
+  },
+});
 
-// Initialize Mapbox with access token
-// Priority: EXPO_PUBLIC env var > app.json extra config > fallback token
 const MAPBOX_ACCESS_TOKEN = 
   process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || 
   Constants.expoConfig?.extra?.mapboxAccessToken || 
-  'sk.eyJ1IjoiZWxvaW1hbiIsImEiOiJjbWplbTZkYTIwaTljM2NzbHF2NW11c28xIn0.mNYoYxigf376xbgpFk9oew';
-
-// Initialize Mapbox only on native platforms
-if (Platform.OS !== 'web' && Mapbox && typeof Mapbox.setAccessToken === 'function') {
-  if (MAPBOX_ACCESS_TOKEN) {
-    Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
-  } else {
-    console.warn('Mapbox access token not found. Please set EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN in your .env file.');
-  }
-}
+  'sk.eyJ1IjoiZWxvaW1hbiIsImU6ImNtamVtNmRhMjBpOWMzY3NscXY2bXVzbzEifQ.mNYoYxigf376xbgpFk9oew';
 
 export interface SelectedLocation {
   name: string;
@@ -62,7 +61,36 @@ export default function LocationPicker({
   onLocationSelect,
   initialLocation,
 }: LocationPickerProps) {
-  // Show error message on web platform
+  const [mapboxInitialized, setMapboxInitialized] = useState(false);
+  const cameraRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      console.log('[Mapbox] Web platform detected - using fallback UI');
+      return;
+    }
+
+    if (!Mapbox) {
+      console.error('[Mapbox] Error: Mapbox module not found. Make sure @rnmapbox/maps is installed.');
+      return;
+    }
+
+    // Set access token if available
+    if (Mapbox.setAccessToken && MAPBOX_ACCESS_TOKEN) {
+      try {
+        console.log('[Mapbox] Setting access token...');
+        Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
+        console.log('[Mapbox] Access token set successfully');
+        setMapboxInitialized(true);
+      } catch (error) {
+        console.error('[Mapbox] Error setting access token:', error);
+      }
+    }
+
+    return () => {
+      console.log('[Mapbox] Component unmounted');
+    };
+  }, []);
   if (Platform.OS === 'web') {
     return (
       <View style={styles.container}>
@@ -77,8 +105,13 @@ export default function LocationPicker({
     );
   }
 
-  // Show error if Mapbox is not available (on native platforms)
-  if (Platform.OS !== 'web' && (!Mapbox || !Camera || !PointAnnotation)) {
+  const isNativePlatform = Platform.OS === 'ios' || Platform.OS === 'android';
+  if (isNativePlatform && (!Mapbox?.MapView || !Camera || !PointAnnotation)) {
+    console.error('[Mapbox] Missing required components:', {
+      Mapbox: !!Mapbox,
+      Camera: !!Camera,
+      PointAnnotation: !!PointAnnotation
+    });
     return (
       <View style={styles.container}>
         <View style={styles.webNotSupported}>
@@ -100,14 +133,12 @@ export default function LocationPicker({
   const [mapRegion, setMapRegion] = useState({
     center: initialLocation
       ? [initialLocation.longitude, initialLocation.latitude]
-      : [-122.4194, 37.7749], // Default to San Francisco
+      : [-122.4194, 37.7749],
     zoom: 14,
   });
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const cameraRef = useRef<Camera>(null);
 
-  // Search for locations using Mapbox Geocoding API
   const searchLocations = async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -151,7 +182,6 @@ export default function LocationPicker({
     }
   };
 
-  // Debounced search
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       searchLocations(searchQuery);
@@ -160,7 +190,6 @@ export default function LocationPicker({
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  // Reverse geocode coordinates to get address
   const reverseGeocode = async (latitude: number, longitude: number) => {
     try {
       const response = await axios.get(
@@ -232,7 +261,7 @@ export default function LocationPicker({
 
     // Animate camera to selected location
     if (cameraRef.current) {
-      cameraRef.current.setCamera({
+      cameraRef.current?.setCamera({
         centerCoordinate: [result.longitude, result.latitude],
         zoomLevel: 16,
         animationDuration: 1000,
@@ -270,7 +299,7 @@ export default function LocationPicker({
 
       // Animate camera to current location
       if (cameraRef.current) {
-        cameraRef.current.setCamera({
+        cameraRef.current?.setCamera({
           centerCoordinate: [longitude, latitude],
           zoomLevel: 16,
           animationDuration: 1000,
@@ -306,7 +335,7 @@ export default function LocationPicker({
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Search size={20} color="#666" />
+          <Search size={20} color="#000000" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search for a location..."
@@ -456,7 +485,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   searchContainer: {
-    padding: 16,
+    padding: 8,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
@@ -468,7 +497,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 4,
     gap: 8,
   },
   searchInput: {
