@@ -1,23 +1,45 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
-
 buildscript {
-  repositories {
-    google()
-    mavenCentral()
-  }
-  dependencies {
-    classpath('com.android.tools.build:gradle')
-    classpath('com.facebook.react:react-native-gradle-plugin')
-    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
-  }
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+        maven { url 'https://repo.expo.dev' }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.2'
+        classpath 'com.facebook.react:react-native-gradle-plugin'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0'
+    }
 }
 
 allprojects {
-  repositories {
-    google()
-    mavenCentral()
-    maven { url 'https://www.jitpack.io' }
-  }
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+        maven { url 'https://repo.expo.dev' }
+        maven {
+            url "https://api.mapbox.com/downloads/v2/releases/maven"
+            authentication { basic(BasicAuthentication) }
+            credentials {
+                username = "eloiman"
+                password = "sk.eyJ1IjoiZWxvaW1hbiIsImEiOiJjbWplbTZkYTIwaTljM2NzbHF2NW11c28xIn0.mNYoYxigf376xbgpFk9oew"
+            }
+        }
+    }
+}
+
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+    }
 }
 
 apply plugin: "expo-root-project"
