@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as morgan from 'morgan';
 import { AppModule } from './app.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -10,6 +11,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
+
+  // Add Morgan logging
+  app.use(morgan('dev'));
 
   // Register global exception filter for standardized error responses
   app.useGlobalFilters(new AllExceptionsFilter());
@@ -65,12 +69,11 @@ async function bootstrap() {
     .addTag('Users', 'User profile management')
     .addTag('Events', 'Event creation, management, and attendance')
     .addTag('Invitations', 'Event invitation management')
-    .addTag('Categories & Reference Data', 'Event categories, interests, and colleges')
-    .setContact(
-      'CELIA Support',
-      'https://celia.app',
-      'support@celia.app',
+    .addTag(
+      'Categories & Reference Data',
+      'Event categories, interests, and colleges',
     )
+    .setContact('CELIA Support', 'https://celia.app', 'support@celia.app')
     .setLicense('MIT', 'https://opensource.org/licenses/MIT')
     .build();
 
@@ -115,7 +118,7 @@ async function bootstrap() {
   `);
 
   console.log('\n📝 Logging enabled for authentication and requests');
-  console.log('💡 Frontend should connect to: http://localhost:${port}\n');
+  console.log(`💡 Frontend should connect to: http://localhost:${port}\n`);
 }
 
 bootstrap();

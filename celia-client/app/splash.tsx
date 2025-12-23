@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 
 export default function SplashScreen() {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -52,7 +52,7 @@ export default function SplashScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Animated.View
         style={[
           styles.logoContainer,
@@ -66,7 +66,7 @@ export default function SplashScreen() {
           <Text style={styles.logoText}>C</Text>
         </View>
       </Animated.View>
-    </View>
+    </SafeAreaView>
   );
 }
 

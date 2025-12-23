@@ -36,7 +36,7 @@ export class AuthService {
 
     // Verify OTP if provided
     if (dto.otpCode) {
-      const otp = await this.prisma.signupOtp.findFirst({
+      const otp = await this.prisma.otp.findFirst({
         where: {
           email: dto.email,
           code: dto.otpCode,
@@ -52,7 +52,7 @@ export class AuthService {
       }
 
       // Mark OTP as verified
-      await this.prisma.signupOtp.update({
+      await this.prisma.otp.update({
         where: { id: otp.id },
         data: { verified: true },
       });

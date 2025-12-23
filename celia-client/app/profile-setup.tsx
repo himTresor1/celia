@@ -17,6 +17,7 @@ import { Camera, X, MapPin, GraduationCap, Heart } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface College {
   id: string;
@@ -512,7 +513,7 @@ export default function ProfileSetupScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.stepText}>Step {step} of 4</Text>
         {renderProgressBar()}
@@ -998,7 +999,7 @@ export default function ProfileSetupScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

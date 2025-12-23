@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -127,160 +128,164 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>
-            {step === 'email' ? 'Create Account' : 'Verify Email'}
-          </Text>
-          <Text style={styles.subtitle}>
-            {step === 'email'
-              ? 'Sign up with your email to get started'
-              : `We've sent a verification code to ${email}`}
-          </Text>
-        </View>
-
-        <View style={styles.form}>
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-
-          {step === 'email' ? (
-            <>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email Address *</Text>
-                <View style={SharedStyles.input}>
-                  <Mail size={20} color={Colors.textSecondary} />
-                  <TextInput
-                    style={styles.inputField}
-                    placeholder="Enter your email"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    editable={!loading}
-                    placeholderTextColor={Colors.textLight}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password *</Text>
-                <View style={SharedStyles.input}>
-                  <Lock size={20} color={Colors.textSecondary} />
-                  <TextInput
-                    style={styles.inputField}
-                    placeholder="Create a password (min 6 characters)"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    editable={!loading}
-                    placeholderTextColor={Colors.textLight}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirm Password *</Text>
-                <View style={SharedStyles.input}>
-                  <Lock size={20} color={Colors.textSecondary} />
-                  <TextInput
-                    style={styles.inputField}
-                    placeholder="Confirm your password"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    editable={!loading}
-                    placeholderTextColor={Colors.textLight}
-                  />
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={[
-                  SharedStyles.button,
-                  loading && SharedStyles.buttonDisabled,
-                ]}
-                onPress={handleSendVerification}
-                // disabled={loading}
-              >
-                <Text style={SharedStyles.buttonText}>
-                  {loading ? 'Sending Code...' : 'Send Verification Code'}
-                </Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <View style={styles.verificationInfo}>
-                <Text style={styles.verificationText}>
-                  Enter the 6-digit code sent to your email
-                </Text>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Verification Code *</Text>
-                <View style={SharedStyles.input}>
-                  <TextInput
-                    style={styles.inputField}
-                    placeholder="Enter 6-digit code"
-                    value={verificationCode}
-                    onChangeText={setVerificationCode}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    editable={!loading}
-                    placeholderTextColor={Colors.textLight}
-                  />
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={[
-                  SharedStyles.button,
-                  loading && SharedStyles.buttonDisabled,
-                ]}
-                onPress={handleVerifyCode}
-                disabled={loading}
-              >
-                <Text style={SharedStyles.buttonText}>
-                  {loading ? 'Verifying...' : 'Verify Email'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={handleResendCode}
-                disabled={loading}
-              >
-                <Text style={styles.linkText}>Didn't receive code? Resend</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={() => setStep('email')}
-                disabled={loading}
-              >
-                <Text style={styles.linkText}>Change Email</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-              <Text style={styles.link}>Sign In</Text>
-            </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.header}>
+            <Text style={styles.title}>
+              {step === 'email' ? 'Create Account' : 'Verify Email'}
+            </Text>
+            <Text style={styles.subtitle}>
+              {step === 'email'
+                ? 'Sign up with your email to get started'
+                : `We've sent a verification code to ${email}`}
+            </Text>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+          <View style={styles.form}>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            {step === 'email' ? (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Email Address *</Text>
+                  <View style={SharedStyles.input}>
+                    <Mail size={20} color={Colors.textSecondary} />
+                    <TextInput
+                      style={styles.inputField}
+                      placeholder="Enter your email"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      editable={!loading}
+                      placeholderTextColor={Colors.textLight}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Password *</Text>
+                  <View style={SharedStyles.input}>
+                    <Lock size={20} color={Colors.textSecondary} />
+                    <TextInput
+                      style={styles.inputField}
+                      placeholder="Create a password (min 6 characters)"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                      autoCapitalize="none"
+                      editable={!loading}
+                      placeholderTextColor={Colors.textLight}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Confirm Password *</Text>
+                  <View style={SharedStyles.input}>
+                    <Lock size={20} color={Colors.textSecondary} />
+                    <TextInput
+                      style={styles.inputField}
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry
+                      autoCapitalize="none"
+                      editable={!loading}
+                      placeholderTextColor={Colors.textLight}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    SharedStyles.button,
+                    loading && SharedStyles.buttonDisabled,
+                  ]}
+                  onPress={handleSendVerification}
+                  // disabled={loading}
+                >
+                  <Text style={SharedStyles.buttonText}>
+                    {loading ? 'Sending Code...' : 'Send Verification Code'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <View style={styles.verificationInfo}>
+                  <Text style={styles.verificationText}>
+                    Enter the 6-digit code sent to your email
+                  </Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Verification Code *</Text>
+                  <View style={SharedStyles.input}>
+                    <TextInput
+                      style={styles.inputField}
+                      placeholder="Enter 6-digit code"
+                      value={verificationCode}
+                      onChangeText={setVerificationCode}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      editable={!loading}
+                      placeholderTextColor={Colors.textLight}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    SharedStyles.button,
+                    loading && SharedStyles.buttonDisabled,
+                  ]}
+                  onPress={handleVerifyCode}
+                  disabled={loading}
+                >
+                  <Text style={SharedStyles.buttonText}>
+                    {loading ? 'Verifying...' : 'Verify Email'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.linkButton}
+                  onPress={handleResendCode}
+                  disabled={loading}
+                >
+                  <Text style={styles.linkText}>
+                    Didn't receive code? Resend
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.linkButton}
+                  onPress={() => setStep('email')}
+                  disabled={loading}
+                >
+                  <Text style={styles.linkText}>Change Email</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+                <Text style={styles.link}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

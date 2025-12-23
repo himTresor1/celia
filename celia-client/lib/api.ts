@@ -27,12 +27,12 @@ class ApiClient {
           console.log('[API] Request with token:', {
             url: config.url,
             method: config.method,
-            hasToken: true
+            hasToken: true,
           });
         } else {
           console.log('[API] Request without token:', {
             url: config.url,
-            method: config.method
+            method: config.method,
           });
         }
         return config;
@@ -47,7 +47,7 @@ class ApiClient {
       (response) => {
         console.log('[API] Response success:', {
           url: response.config.url,
-          status: response.status
+          status: response.status,
         });
         return response;
       },
@@ -78,13 +78,18 @@ class ApiClient {
     await AsyncStorage.removeItem('user');
   }
 
-  async register(data: { email: string; password: string; fullName: string; otpCode?: string }) {
+  async register(data: {
+    email: string;
+    password: string;
+    fullName: string;
+    otpCode?: string;
+  }) {
     try {
       console.log('[API] Register request:', {
         email: data.email,
         fullName: data.fullName,
         hasOtpCode: !!data.otpCode,
-        url: `${API_URL}/auth/register`
+        url: `${API_URL}/auth/register`,
       });
       const response = await this.client.post('/auth/register', data);
       console.log('[API] Register response:', response.data);
@@ -124,14 +129,17 @@ class ApiClient {
 
   async login(email: string, password: string) {
     try {
-      console.log('[API] Login request:', { 
-        email, 
+      console.log('[API] Login request:', {
+        email,
         url: `${API_BASE}/auth/login`,
         baseURL: API_BASE,
-        fullURL: `${API_URL}/api/auth/login`
+        fullURL: `${API_URL}/api/auth/login`,
       });
-      
-      const response = await this.client.post('/auth/login', { email, password });
+
+      const response = await this.client.post('/auth/login', {
+        email,
+        password,
+      });
       console.log('[API] Login response:', response.data);
 
       // Backend response is wrapped by TransformInterceptor: { message: "Login successful", data: { user, token } }
@@ -165,20 +173,27 @@ class ApiClient {
         requestBaseURL: error.config?.baseURL,
       };
       console.error('[API] Login error details:', errorDetails);
-      
+
       // Provide more helpful error messages
-      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
-        throw new Error('Cannot connect to server. Make sure the backend is running on http://localhost:3000');
+      if (
+        error.code === 'ECONNREFUSED' ||
+        error.message?.includes('Network Error')
+      ) {
+        throw new Error(
+          'Cannot connect to server. Make sure the backend is running on http://localhost:3000'
+        );
       }
-      
+
       if (error.response?.status === 401) {
-        throw new Error(error.response?.data?.message || 'Invalid email or password');
+        throw new Error(
+          error.response?.data?.message || 'Invalid email or password'
+        );
       }
-      
+
       if (error.response?.status === 500) {
         throw new Error('Server error. Please try again later.');
       }
-      
+
       throw error;
     }
   }
@@ -289,12 +304,16 @@ class ApiClient {
   }
 
   async acceptFriendRequest(requestId: string) {
-    const response = await this.client.post(`/friends/request/${requestId}/accept`);
+    const response = await this.client.post(
+      `/friends/request/${requestId}/accept`
+    );
     return response.data;
   }
 
   async rejectFriendRequest(requestId: string) {
-    const response = await this.client.post(`/friends/request/${requestId}/decline`);
+    const response = await this.client.post(
+      `/friends/request/${requestId}/decline`
+    );
     return response.data;
   }
 
@@ -338,7 +357,11 @@ class ApiClient {
     return response.data;
   }
 
-  async bulkInvite(data: { eventId: string; inviteeIds: string[]; message?: string }) {
+  async bulkInvite(data: {
+    eventId: string;
+    inviteeIds: string[];
+    message?: string;
+  }) {
     // Map client's 'message' to server's 'personalMessage'
     const payload = {
       eventId: data.eventId,
@@ -349,10 +372,15 @@ class ApiClient {
     return response.data;
   }
 
-  async respondToInvitation(invitationId: string, response: 'accepted' | 'rejected') {
+  async respondToInvitation(
+    invitationId: string,
+    response: 'accepted' | 'rejected'
+  ) {
     // Backend expects 'status' field, and uses 'going' for accepted, 'declined' for rejected
     const status = response === 'accepted' ? 'going' : 'declined';
-    const res = await this.client.patch(`/invitations/${invitationId}`, { status });
+    const res = await this.client.patch(`/invitations/${invitationId}`, {
+      status,
+    });
     return res.data;
   }
 
@@ -385,12 +413,16 @@ class ApiClient {
   }
 
   async getRecommendations(filters?: any) {
-    const response = await this.client.get('/recommendations', { params: filters });
-    return response.data;
+    const response = await this.client.get('/users/recommendations', {
+      params: filters,
+    });
+    return response.data?.data || response.data;
   }
 
   async getSmartSuggestions(filters?: any) {
-    const response = await this.client.get('/recommendations/suggestions', { params: filters });
+    const response = await this.client.get('/recommendations/suggestions', {
+      params: filters,
+    });
     // Backend response is wrapped: { message: "...", data: [...] }
     const data = response.data?.data || response.data || [];
     return Array.isArray(data) ? data : [];
@@ -416,7 +448,12 @@ class ApiClient {
     return response.data.data || response.data;
   }
 
-  async logEngagement(userId: string, actionType: string, points: number, metadata?: any) {
+  async logEngagement(
+    userId: string,
+    actionType: string,
+    points: number,
+    metadata?: any
+  ) {
     const response = await this.client.post('/users/engagement', {
       userId,
       actionType,
@@ -455,7 +492,9 @@ class ApiClient {
   }
 
   async updatePushToken(pushToken: string) {
-    const response = await this.client.patch('/users/push-token', { pushToken });
+    const response = await this.client.patch('/users/push-token', {
+      pushToken,
+    });
     return response.data;
   }
 
@@ -467,7 +506,9 @@ class ApiClient {
   }
 
   async markNotificationAsRead(notificationId: string) {
-    const response = await this.client.patch(`/notifications/${notificationId}/read`);
+    const response = await this.client.patch(
+      `/notifications/${notificationId}/read`
+    );
     return response.data;
   }
 
@@ -485,9 +526,9 @@ class ApiClient {
     try {
       // Use /otp/send endpoint which doesn't require user to exist
       // This sends OTP for signup before user registration
-      const response = await this.client.post('/otp/send', { 
-        email, 
-        type: 'signup' 
+      const response = await this.client.post('/otp/send', {
+        email,
+        type: 'signup',
       });
       return response.data;
     } catch (error: any) {
@@ -498,7 +539,10 @@ class ApiClient {
 
   async verifySignupOtp(email: string, code: string) {
     try {
-      const response = await this.client.post('/auth/verify-signup-otp', { email, code });
+      const response = await this.client.post('/auth/verify-signup-otp', {
+        email,
+        code,
+      });
       return response.data;
     } catch (error: any) {
       console.error('[API] Verify signup OTP error:', error);

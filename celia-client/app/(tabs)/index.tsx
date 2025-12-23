@@ -8,13 +8,13 @@ import {
   Animated,
   PanResponder,
   Dimensions,
-  SafeAreaView,
   StatusBar,
   TextInput,
   Platform,
   Modal,
   FlatList,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import {
@@ -50,6 +50,15 @@ interface UserProfile {
   interests: string[];
   preferred_locations: string[];
   bio?: string;
+  match_score?: number;
+  scores?: {
+    personality: number;
+    eventAffinity: number;
+    socialProximity: number;
+    quality: number;
+    interestOverlap: number;
+    activity: number;
+  };
 }
 
 const PASSED_USERS_KEY = 'passed_users_just_looking';
@@ -87,7 +96,7 @@ export default function HomeScreen() {
       if (passed) {
         setPassedUsers(new Set(JSON.parse(passed)));
       }
-      
+
       // Load saved users from API to sync with backend
       if (user?.id) {
         const { data } = await apiHelpers.getSavedUsers(user.id);
@@ -96,7 +105,9 @@ export default function HomeScreen() {
           const savedIds = new Set(
             items.map((item: any) => {
               const savedUser = item.user || item.saved_user || item;
-              return savedUser.id || item.savedUserId || savedUser.saved_user_id;
+              return (savedUser.id ||
+                item.savedUserId ||
+                savedUser.saved_user_id) as string;
             })
           );
           setSavedUsers(savedIds);
@@ -123,7 +134,7 @@ export default function HomeScreen() {
 
   const saveUser = async (userId: string) => {
     const isCurrentlySaved = savedUsers.has(userId);
-    
+
     try {
       if (isCurrentlySaved) {
         // Remove from saved
@@ -180,11 +191,51 @@ export default function HomeScreen() {
     setShowChoiceModal(false);
   };
 
-  const fetchUsers = () => {
-    const availableUsers = DUMMY_USERS.filter(
-      (u) => !user?.id || u.id !== user.id
-    ) as UserProfile[];
-    setUsers(availableUsers);
+  const fetchUsers = async () => {
+    try {
+      // Fetch recommendations from API
+      // We can pass lat/lng here if we have location access, for now we rely on user profile
+      const data = await api.getRecommendations();
+      console.log(data);
+
+      // Map backend data (camelCase) to frontend structure (snake_case)
+      // and filter out current user just in case
+      const mappedUsers: UserProfile[] = (Array.isArray(data) ? data : [])
+        .filter((u: any) => !user?.id || u.id !== user.id)
+        .map((u: any) => ({
+          id: u.id,
+          full_name: u.fullName,
+          college_name: u.collegeName,
+          photo_urls: u.photoUrls || [],
+          interests: u.interests || [],
+          preferred_locations: u.preferredLocations || [],
+          bio: u.bio,
+          // Add match metadata if available
+          match_score: u.matchScore,
+          scores: u.scores,
+        }));
+
+      if (mappedUsers.length > 0) {
+        setUsers(mappedUsers);
+      } else {
+        // Fallback to dummy users if API returns empty (for demo purposes)
+        // or handle empty state
+        console.log(
+          'No recommendations found, falling back to dummy users for demo'
+        );
+        const availableUsers = DUMMY_USERS.filter(
+          (u) => !user?.id || u.id !== user.id
+        ) as UserProfile[];
+        setUsers(availableUsers);
+      }
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+      // Fallback to dummy users on error
+      const availableUsers = DUMMY_USERS.filter(
+        (u) => !user?.id || u.id !== user.id
+      ) as UserProfile[];
+      setUsers(availableUsers);
+    }
   };
 
   // Track touch/mouse start position for web compatibility
@@ -751,6 +802,14 @@ export default function HomeScreen() {
               {/* Card Content */}
               <View style={styles.cardContent}>
                 <View style={styles.cardHeader}>
+                  {currentUser.match_score !== undefined && (
+                    <View style={styles.matchBadge}>
+                      <Sparkles size={14} color="#FFD700" fill="#FFD700" />
+                      <Text style={styles.matchText}>
+                        {Math.round(currentUser.match_score * 100)}% Match
+                      </Text>
+                    </View>
+                  )}
                   <View style={styles.nameRow}>
                     <Text style={styles.cardName}>{currentUser.full_name}</Text>
                     <View style={styles.onlineBadge} />
@@ -785,6 +844,26 @@ export default function HomeScreen() {
                       .map((interest, index) => (
                         <View key={index} style={styles.interestTag}>
                           <Text style={styles.interestText}>{interest}</Text>
+                        </View>
+                      ))}
+                  </View>
+                )}
+
+                {/* Score Breakdown */}
+                {currentUser.scores && (
+                  <View style={styles.scoreBreakdown}>
+                    {Object.entries(currentUser.scores)
+                      .filter(([_, score]) => (score as number) > 0)
+                      .sort(([, a], [, b]) => (b as number) - (a as number))
+                      .slice(0, 3) // Show top 3 contributors
+                      .map(([key, score]) => (
+                        <View key={key} style={styles.scoreItem}>
+                          <Text style={styles.scoreLabel}>
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                          </Text>
+                          <Text style={styles.scoreValue}>
+                            {Math.round((score as number) * 100)}%
+                          </Text>
                         </View>
                       ))}
                   </View>
@@ -1208,7 +1287,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: SCREEN_WIDTH - 40,
-    height: SCREEN_HEIGHT * 0.65,
+    height: SCREEN_HEIGHT * 0.58, // Reduced from 0.65 to fit better
     borderRadius: 24,
     backgroundColor: '#fff',
     position: 'absolute',
@@ -1232,34 +1311,52 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '60%',
+    height: '70%', // Increased gradient height for better text visibility
   },
   cardContent: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 24,
+    padding: 20, // Reduced padding slightly
     zIndex: 1,
   },
   cardHeader: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 4,
+  },
+  matchBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.6)', // Darker background for visibility
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFD700',
     marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  matchText: {
+    color: '#FFD700',
+    fontSize: 12,
+    fontWeight: '700',
   },
   cardName: {
-    fontSize: 32,
+    fontSize: 28, // Slightly smaller font
     fontWeight: '700',
     color: '#fff',
   },
   onlineBadge: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#3AFF6E',
     borderWidth: 2,
     borderColor: '#fff',
@@ -1270,7 +1367,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   collegeText: {
-    fontSize: 16,
+    fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
     fontWeight: '500',
   },
@@ -1278,35 +1375,60 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   locationText: {
-    fontSize: 14,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.8)',
   },
   cardBio: {
-    fontSize: 15,
+    fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
-    lineHeight: 22,
-    marginBottom: 16,
+    lineHeight: 20,
+    marginBottom: 12,
   },
   interestsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
+    marginBottom: 12,
   },
   interestTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
   },
   interestText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#fff',
     fontWeight: '600',
+  },
+  scoreBreakdown: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 4,
+  },
+  scoreItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  scoreLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  scoreValue: {
+    fontSize: 10,
+    color: '#3AFF6E',
+    fontWeight: '700',
   },
   overlay: {
     position: 'absolute',
@@ -1339,13 +1461,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 40,
-    paddingVertical: 24,
-    paddingBottom: 32,
+    paddingVertical: 20,
+    paddingBottom: 24,
   },
   passButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1356,9 +1478,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   inviteButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: '#3AFF6E',
     alignItems: 'center',
     justifyContent: 'center',

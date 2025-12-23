@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ScoringService } from '../scoring/scoring.service';
@@ -129,6 +134,27 @@ export class UsersService {
       ...dto,
     };
 
+    // Validate collegeId if provided
+    if (dto.collegeId) {
+      const college = await this.prisma.college.findUnique({
+        where: { id: dto.collegeId },
+      });
+      if (!college) {
+        // If college not found by ID, try to find by name if provided, or throw error
+        // For now, let's just remove the invalid collegeId to prevent FK error
+        // or throw a BadRequestException
+        throw new BadRequestException('Invalid college ID');
+      }
+    } else if (dto.collegeName) {
+      // If collegeName provided but no ID, try to find/link college
+      const college = await this.prisma.college.findUnique({
+        where: { name: dto.collegeName },
+      });
+      if (college) {
+        updatedData.collegeId = college.id;
+      }
+    }
+
     // Automatically determine profile completion based on required fields
     // Required fields: fullName, bio (min 50 chars), collegeName, interests (min 3), photoUrls (min 1), preferredCityIds (min 1)
     const finalFullName = dto.fullName ?? user.fullName;
@@ -137,12 +163,15 @@ export class UsersService {
     const finalInterests = dto.interests ?? user.interests;
     const finalPhotoUrls = dto.photoUrls ?? (user.photoUrls as any[]);
     const finalPreferredCityIds = dto.preferredCityIds ?? user.preferredCityIds;
-    const finalPreferredLocations = dto.preferredLocations ?? user.preferredLocations;
+    const finalPreferredLocations =
+      dto.preferredLocations ?? user.preferredLocations;
 
     // Check completion using preferredCityIds (new) or preferredLocations (legacy)
-    const hasPreferredLocations = 
-      (Array.isArray(finalPreferredCityIds) && finalPreferredCityIds.length >= 1) ||
-      (Array.isArray(finalPreferredLocations) && finalPreferredLocations.length >= 1);
+    const hasPreferredLocations =
+      (Array.isArray(finalPreferredCityIds) &&
+        finalPreferredCityIds.length >= 1) ||
+      (Array.isArray(finalPreferredLocations) &&
+        finalPreferredLocations.length >= 1);
 
     const isProfileComplete =
       finalFullName &&
@@ -341,6 +370,169 @@ export class UsersService {
       data: { collegeVerified: true },
     });
 
-    return { message: 'College email verified successfully', collegeVerified: true };
+    return {
+      message: 'College email verified successfully',
+      collegeVerified: true,
+    };
+  }
+
+  // ============================================================================
+  // RECOMMENDATION ALGORITHM
+  // ============================================================================
+
+  async getRecommendations(userId: string, lat?: number, lng?: number) {
+    // 1. Fetch Viewer Data
+    const viewer = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        friendships1: { select: { user2Id: true } },
+        friendships2: { select: { user1Id: true } },
+        savedUsers: { select: { savedUserId: true } },
+      },
+    });
+
+    if (!viewer) throw new NotFoundException('User not found');
+
+    // Compile lists of excluded users (friends, self)
+    const friendIds = [
+      ...viewer.friendships1.map((f) => f.user2Id),
+      ...viewer.friendships2.map((f) => f.user1Id),
+    ];
+    const excludedIds = new Set([userId, ...friendIds]);
+
+    // 2. Fetch Candidates (Phase 1: Hard Filters)
+    const candidates = await this.prisma.user.findMany({
+      where: {
+        id: { notIn: Array.from(excludedIds) },
+        profileCompleted: true,
+        // Geo Constraint: If viewer has preferred locations, candidate must share at least one
+        ...(viewer.preferredLocations.length > 0
+          ? {
+              preferredLocations: {
+                hasSome: viewer.preferredLocations,
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        fullName: true,
+        avatarUrl: true,
+        interests: true,
+        preferredLocations: true,
+        attractivenessScore: true,
+        engagementPoints: true,
+        profileCompleteness: true,
+        lastActiveDate: true,
+        _count: {
+          select: {
+            friendships1: true,
+            friendships2: true,
+          },
+        },
+      },
+      take: 100,
+    });
+
+    // 3. Phase 2: Scoring
+    const scoredCandidates = await Promise.all(
+      candidates.map(async (candidate) => {
+        // --- A. Personality Similarity (0.30) ---
+        const personalityScore = this.calculateJaccardSimilarity(
+          viewer.interests,
+          candidate.interests,
+        );
+
+        // --- B. Event Affinity (0.25) ---
+        const sharedEventsCount = await this.prisma.eventAttendee.count({
+          where: {
+            userId: candidate.id,
+            event: {
+              attendees: {
+                some: { userId: viewer.id },
+              },
+              eventDate: {
+                gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // Last 60 days
+              },
+            },
+          },
+        });
+        const eventAffinityScore = Math.min(sharedEventsCount / 3, 1);
+
+        // --- C. Social Proximity (0.20) ---
+        // Simplified mutual friend check
+        const candidateFriendships = await this.prisma.friendship.findMany({
+          where: {
+            OR: [{ user1Id: candidate.id }, { user2Id: candidate.id }],
+          },
+          select: { user1Id: true, user2Id: true },
+        });
+        const candidateFriendIds = candidateFriendships.map((f) =>
+          f.user1Id === candidate.id ? f.user2Id : f.user1Id,
+        );
+        const mutualFriendsCount = candidateFriendIds.filter((id) =>
+          friendIds.includes(id),
+        ).length;
+        const socialProximityScore = Math.min(mutualFriendsCount / 5, 1);
+
+        // --- D. Engagement & Quality (0.15) ---
+        const qualityScore =
+          (this.normalize(candidate.attractivenessScore, 0, 100) +
+            this.normalize(candidate.profileCompleteness, 0, 100)) /
+          2;
+
+        // --- E. Interest Overlap (0.07) ---
+        const interestOverlapScore = personalityScore;
+
+        // --- F. Activity Freshness (0.03) ---
+        let activityScore = 0;
+        if (candidate.lastActiveDate) {
+          const daysSinceActive =
+            (Date.now() - candidate.lastActiveDate.getTime()) /
+            (1000 * 60 * 60 * 24);
+          activityScore = Math.max(0, 1 - daysSinceActive / 30);
+        }
+
+        // --- Final Weighted Score ---
+        const matchScore =
+          0.3 * personalityScore +
+          0.25 * eventAffinityScore +
+          0.2 * socialProximityScore +
+          0.15 * qualityScore +
+          0.07 * interestOverlapScore +
+          0.03 * activityScore;
+
+        return {
+          ...candidate,
+          matchScore,
+          scores: {
+            personality: personalityScore,
+            eventAffinity: eventAffinityScore,
+            socialProximity: socialProximityScore,
+            quality: qualityScore,
+            interestOverlap: interestOverlapScore,
+            activity: activityScore,
+          },
+        };
+      }),
+    );
+
+    // 4. Sort and Return
+    return scoredCandidates
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .map(({ _count, ...user }) => user);
+  }
+
+  private calculateJaccardSimilarity(arr1: string[], arr2: string[]): number {
+    if (!arr1 || !arr2 || arr1.length === 0 || arr2.length === 0) return 0;
+    const set1 = new Set(arr1);
+    const set2 = new Set(arr2);
+    const intersection = new Set([...set1].filter((x) => set2.has(x)));
+    const union = new Set([...set1, ...set2]);
+    return intersection.size / union.size;
+  }
+
+  private normalize(value: number, min: number, max: number): number {
+    return Math.max(0, Math.min(1, (value - min) / (max - min)));
   }
 }

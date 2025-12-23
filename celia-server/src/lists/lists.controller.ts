@@ -14,7 +14,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AddToSavedDto } from './dto/add-to-saved.dto';
 import { BulkInviteDto } from './dto/bulk-invite.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Lists')
 @Controller('lists')
 @UseGuards(JwtAuthGuard)
 export class ListsController {

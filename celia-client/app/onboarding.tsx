@@ -1,9 +1,19 @@
 import { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, FlatList, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native';
 import { router } from 'expo-router';
 import { SvgXml } from 'react-native-svg';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -30,22 +40,26 @@ const slides: OnboardingSlide[] = [
   {
     id: '0',
     title: 'Welcome to CELIA',
-    description: 'Connect with friends and discover amazing events at your college',
+    description:
+      'Connect with friends and discover amazing events at your college',
   },
   {
     id: '1',
     title: 'Connect Easily',
-    description: 'Find and connect with students who share your interests and passions',
+    description:
+      'Find and connect with students who share your interests and passions',
   },
   {
     id: '2',
     title: 'Fun Events',
-    description: 'Create and join exciting events, from study sessions to social gatherings',
+    description:
+      'Create and join exciting events, from study sessions to social gatherings',
   },
   {
     id: '3',
     title: 'Stay Notified',
-    description: 'Get timely notifications about events and never miss out on the fun',
+    description:
+      'Get timely notifications about events and never miss out on the fun',
   },
 ];
 
@@ -79,7 +93,13 @@ export default function OnboardingScreen() {
     router.replace('/(auth)/login');
   };
 
-  const renderSlide = ({ item, index }: { item: OnboardingSlide; index: number }) => (
+  const renderSlide = ({
+    item,
+    index,
+  }: {
+    item: OnboardingSlide;
+    index: number;
+  }) => (
     <View style={styles.slide}>
       {index === 0 ? (
         <View style={styles.logoContainer}>
@@ -99,7 +119,7 @@ export default function OnboardingScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
         <Text style={styles.skipText}>Skip</Text>
       </TouchableOpacity>
@@ -118,11 +138,17 @@ export default function OnboardingScreen() {
 
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.navButton, currentIndex === 0 && styles.navButtonDisabled]}
+          style={[
+            styles.navButton,
+            currentIndex === 0 && styles.navButtonDisabled,
+          ]}
           onPress={goToPrev}
           disabled={currentIndex === 0}
         >
-          <ArrowLeft size={24} color={currentIndex === 0 ? '#ccc' : '#2C3E50'} />
+          <ArrowLeft
+            size={24}
+            color={currentIndex === 0 ? '#ccc' : '#2C3E50'}
+          />
         </TouchableOpacity>
 
         <View style={styles.pagination}>
@@ -137,11 +163,14 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        <TouchableOpacity style={[styles.navButton, styles.navButtonActive]} onPress={goToNext}>
+        <TouchableOpacity
+          style={[styles.navButton, styles.navButtonActive]}
+          onPress={goToNext}
+        >
           <ArrowRight size={24} color="#000" />
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

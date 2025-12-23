@@ -57,6 +57,34 @@ export class UsersController {
     return this.usersService.findAll(search, interestArray, college);
   }
 
+  @Get('recommendations')
+  @ApiOperation({
+    summary: 'Get user recommendations based on Celia Algorithm',
+  })
+  @ApiQuery({
+    name: 'lat',
+    required: false,
+    type: Number,
+    description: 'Latitude for location matching',
+  })
+  @ApiQuery({
+    name: 'lng',
+    required: false,
+    type: Number,
+    description: 'Longitude for location matching',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of recommended users with match scores',
+  })
+  getRecommendations(
+    @CurrentUser() user: any,
+    @Query('lat') lat?: number,
+    @Query('lng') lng?: number,
+  ) {
+    return this.usersService.getRecommendations(user.id, lat, lng);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiResponse({
@@ -162,6 +190,10 @@ export class UsersController {
     @CurrentUser() user: any,
     @Body() dto: { email: string; otpCode: string },
   ) {
-    return this.usersService.verifyCollegeEmail(user.id, dto.email, dto.otpCode);
+    return this.usersService.verifyCollegeEmail(
+      user.id,
+      dto.email,
+      dto.otpCode,
+    );
   }
 }

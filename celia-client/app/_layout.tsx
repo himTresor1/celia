@@ -5,13 +5,17 @@ import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
-import { registerForPushNotifications, setupNotificationListeners } from '@/lib/notifications';
+import {
+  registerForPushNotifications,
+  setupNotificationListeners,
+} from '@/lib/notifications';
 import {
   DMSans_400Regular,
   DMSans_500Medium,
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
 import * as SplashScreen from 'expo-splash-screen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -76,11 +80,26 @@ function RootLayoutNav() {
         }
       } else {
         // Profile completed - redirect to dashboard/home
-        if (!inTabs && !inGetStarted && !inAuthGroup && !inProfileSetup && !inEvent && !inBrowse && !inSaved && !inProfile) {
+        if (
+          !inTabs &&
+          !inGetStarted &&
+          !inAuthGroup &&
+          !inProfileSetup &&
+          !inEvent &&
+          !inBrowse &&
+          !inSaved &&
+          !inProfile
+        ) {
           router.replace('/(tabs)');
         }
       }
-    } else if (!session && !inAuthGroup && !inSplash && !inOnboarding && !inGetStarted) {
+    } else if (
+      !session &&
+      !inAuthGroup &&
+      !inSplash &&
+      !inOnboarding &&
+      !inGetStarted
+    ) {
       // Unauthenticated users should go to login
       router.replace('/(auth)/login');
     }
@@ -125,8 +144,10 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <RootLayoutNav />
-      <StatusBar style="auto" />
+      <SafeAreaProvider>
+        <RootLayoutNav />
+        <StatusBar style="auto" />
+      </SafeAreaProvider>
     </AuthProvider>
   );
 }
