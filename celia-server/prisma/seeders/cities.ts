@@ -550,14 +550,52 @@ export async function seedCities(prisma: PrismaClient) {
     'Tula',
   ];
 
+  // Map of known coordinates for major cities
+  const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
+    'New York': { lat: 40.7128, lng: -74.006 },
+    'Los Angeles': { lat: 34.0522, lng: -118.2437 },
+    Chicago: { lat: 41.8818, lng: -87.6232 },
+    'San Francisco': { lat: 37.7749, lng: -122.4194 },
+    Seattle: { lat: 47.6062, lng: -122.3321 },
+    Austin: { lat: 30.2672, lng: -97.7431 },
+    Boston: { lat: 42.3601, lng: -71.0589 },
+    Miami: { lat: 25.7617, lng: -80.1918 },
+    'Palo Alto': { lat: 37.4419, lng: -122.143 },
+    'San Jose': { lat: 37.3382, lng: -121.8863 },
+    Cambridge: { lat: 42.3736, lng: -71.1097 },
+    Brooklyn: { lat: 40.6782, lng: -73.9442 },
+    Manhattan: { lat: 40.7831, lng: -73.9712 },
+    'Santa Monica': { lat: 34.0195, lng: -118.4912 },
+    Hollywood: { lat: 34.0928, lng: -118.3287 },
+    Bellevue: { lat: 47.6101, lng: -122.2015 },
+    'New Haven': { lat: 41.3083, lng: -72.9279 },
+    Princeton: { lat: 40.3573, lng: -74.6672 },
+    Philadelphia: { lat: 39.9526, lng: -75.1652 },
+    Durham: { lat: 35.994, lng: -78.8986 },
+    Evanston: { lat: 42.0451, lng: -87.6877 },
+    Ithaca: { lat: 42.444, lng: -76.5019 },
+    London: { lat: 51.5074, lng: -0.1278 },
+    Paris: { lat: 48.8566, lng: 2.3522 },
+    Tokyo: { lat: 35.6762, lng: 139.6503 },
+    Toronto: { lat: 43.65107, lng: -79.347015 },
+    Sydney: { lat: -33.8688, lng: 151.2093 },
+  };
+
   let seededCount = 0;
   for (const cityName of cities) {
     try {
+      const coords = CITY_COORDINATES[cityName] || { lat: null, lng: null };
+
       await prisma.city.upsert({
         where: { name: cityName },
-        update: {},
+        update: {
+          latitude: coords.lat,
+          longitude: coords.lng,
+        },
         create: {
           name: cityName,
+          latitude: coords.lat,
+          longitude: coords.lng,
         },
       });
       seededCount++;

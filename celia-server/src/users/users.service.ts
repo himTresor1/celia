@@ -117,6 +117,7 @@ export class UsersService {
   }
 
   async update(id: string, currentUserId: string, dto: UpdateUserDto) {
+    console.log(id, currentUserId);
     if (id !== currentUserId) {
       throw new ForbiddenException('You can only update your own profile');
     }
@@ -335,6 +336,18 @@ export class UsersService {
     });
   }
 
+  async updateLocation(userId: string, lat: number, lng: number) {
+    console.log('hereeeee');
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        lastLatitude: lat,
+        lastLongitude: lng,
+        lastLocationAt: new Date(),
+      },
+    });
+  }
+
   async sendCollegeVerificationOtp(userId: string, email: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -405,25 +418,23 @@ export class UsersService {
       where: {
         id: { notIn: Array.from(excludedIds) },
         profileCompleted: true,
-        // Geo Constraint: If viewer has preferred locations, candidate must share at least one
-        ...(viewer.preferredLocations.length > 0
-          ? {
-              preferredLocations: {
-                hasSome: viewer.preferredLocations,
-              },
-            }
-          : {}),
       },
       select: {
         id: true,
         fullName: true,
+        // avatarUrl is often null, photoUrls is the main array
         avatarUrl: true,
+        photoUrls: true,
+        collegeName: true,
+        major: true,
         interests: true,
         preferredLocations: true,
         attractivenessScore: true,
         engagementPoints: true,
         profileCompleteness: true,
         lastActiveDate: true,
+        lastLatitude: true,
+        lastLongitude: true,
         _count: {
           select: {
             friendships1: true,
@@ -434,16 +445,60 @@ export class UsersService {
       take: 100,
     });
 
-    // 3. Phase 2: Scoring
+    // 3. Phase 2: Scoring & Geo-Filtering
     const scoredCandidates = await Promise.all(
       candidates.map(async (candidate) => {
-        // --- A. Personality Similarity (0.30) ---
-        const personalityScore = this.calculateJaccardSimilarity(
-          viewer.interests,
-          candidate.interests,
+        // --- Geo Filter (Hard Constraint: 60km) ---
+        let distance: number | null = null;
+        if (lat && lng && candidate.lastLatitude && candidate.lastLongitude) {
+          distance = this.calculateDistance(
+            lat,
+            lng,
+            candidate.lastLatitude,
+            candidate.lastLongitude,
+          );
+
+          if (distance - 10000 > 5000) {
+            return null;
+          }
+        }
+
+        // --- A. University Match (Highest Priority: 0.40) ---
+        // If users are from the same university, this overrides almost everything else
+        const isSameCollege =
+          viewer.collegeName &&
+          candidate.collegeName &&
+          viewer.collegeName === candidate.collegeName;
+        const collegeScore = isSameCollege ? 1 : 0;
+
+        // --- B. Personality Similarity (0.35) ---
+        // Include Major + Interests + Preferred Locations
+        const viewerInterests = [
+          ...(viewer.interests || []),
+          viewer.major,
+        ].filter(Boolean) as string[];
+        const candidateInterests = [
+          ...(candidate.interests || []),
+          candidate.major,
+        ].filter(Boolean) as string[];
+
+        const interestScore = this.calculateJaccardSimilarity(
+          viewerInterests,
+          candidateInterests,
         );
 
-        // --- B. Event Affinity (0.25) ---
+        // Location Similarity
+        const viewerLocations = viewer.preferredLocations || [];
+        const candidateLocations = candidate.preferredLocations || [];
+        const locationScore = this.calculateJaccardSimilarity(
+          viewerLocations,
+          candidateLocations,
+        );
+
+        // Combined Personality Score (Interests weighed slightly higher than locations)
+        const personalityScore = interestScore * 0.7 + locationScore * 0.3;
+
+        // --- C. Event Affinity (0.10) ---
         const sharedEventsCount = await this.prisma.eventAttendee.count({
           where: {
             userId: candidate.id,
@@ -459,7 +514,7 @@ export class UsersService {
         });
         const eventAffinityScore = Math.min(sharedEventsCount / 3, 1);
 
-        // --- C. Social Proximity (0.20) ---
+        // --- D. Social Proximity (0.10) ---
         // Simplified mutual friend check
         const candidateFriendships = await this.prisma.friendship.findMany({
           where: {
@@ -475,52 +530,117 @@ export class UsersService {
         ).length;
         const socialProximityScore = Math.min(mutualFriendsCount / 5, 1);
 
-        // --- D. Engagement & Quality (0.15) ---
+        // --- E. Quality (0.05) ---
         const qualityScore =
           (this.normalize(candidate.attractivenessScore, 0, 100) +
             this.normalize(candidate.profileCompleteness, 0, 100)) /
           2;
 
-        // --- E. Interest Overlap (0.07) ---
-        const interestOverlapScore = personalityScore;
+        // --- Score Weights ---
+        // College (0.40) -> Personality (0.35) -> Others (0.25)
+        const matchScore =
+          0.4 * collegeScore +
+          0.35 * personalityScore +
+          0.1 * eventAffinityScore +
+          0.1 * socialProximityScore +
+          0.05 * qualityScore;
 
-        // --- F. Activity Freshness (0.03) ---
-        let activityScore = 0;
-        if (candidate.lastActiveDate) {
-          const daysSinceActive =
-            (Date.now() - candidate.lastActiveDate.getTime()) /
-            (1000 * 60 * 60 * 24);
-          activityScore = Math.max(0, 1 - daysSinceActive / 30);
+        // --- Generate Insights ---
+        const matchInsights: string[] = [];
+
+        if (isSameCollege) {
+          matchInsights.push(`You both go to ${viewer.collegeName}`);
         }
 
-        // --- Final Weighted Score ---
-        const matchScore =
-          0.3 * personalityScore +
-          0.25 * eventAffinityScore +
-          0.2 * socialProximityScore +
-          0.15 * qualityScore +
-          0.07 * interestOverlapScore +
-          0.03 * activityScore;
+        if (
+          viewer.major &&
+          candidate.major &&
+          viewer.major === candidate.major
+        ) {
+          matchInsights.push(`You both study ${viewer.major}`);
+        }
+
+        // Shared Interests
+        const sharedInterests = viewerInterests.filter(
+          (i) => candidateInterests.includes(i) && i !== viewer.major,
+        );
+        if (sharedInterests.length > 0) {
+          if (sharedInterests.length === 1) {
+            matchInsights.push(`You both like ${sharedInterests[0]}`);
+          } else {
+            matchInsights.push(
+              `Shared interests: ${sharedInterests.slice(0, 2).join(', ')}`,
+            );
+          }
+        }
+
+        // Shared Locations
+        const sharedLocations = viewerLocations.filter((l) =>
+          candidateLocations.includes(l),
+        );
+        if (sharedLocations.length > 0) {
+          matchInsights.push(`You both prefer ${sharedLocations[0]}`);
+        }
+
+        // Shared Events
+        if (sharedEventsCount > 0) {
+          matchInsights.push(
+            `You attended ${sharedEventsCount} same event${sharedEventsCount > 1 ? 's' : ''}`,
+          );
+        }
+
+        // Mutual Friends
+        if (mutualFriendsCount > 0) {
+          matchInsights.push(
+            `${mutualFriendsCount} mutual friend${mutualFriendsCount > 1 ? 's' : ''}`,
+          );
+        }
 
         return {
           ...candidate,
+          distance, // Include distance in response
           matchScore,
+          matchInsights, // Return insights
           scores: {
+            college: collegeScore,
             personality: personalityScore,
             eventAffinity: eventAffinityScore,
             socialProximity: socialProximityScore,
             quality: qualityScore,
-            interestOverlap: interestOverlapScore,
-            activity: activityScore,
           },
         };
       }),
     );
 
-    // 4. Sort and Return
+    // 4. Sort and Return (filtering out nulls from geo-filter)
     return scoredCandidates
+      .filter((item) => item !== null)
       .sort((a, b) => b.matchScore - a.matchScore)
       .map(({ _count, ...user }) => user);
+  }
+
+  private calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const R = 6371; // Radius of the earth in km
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLon = this.deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.deg2rad(lat1)) *
+        Math.cos(this.deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in km
+    return Number(d.toFixed(1));
+  }
+
+  private deg2rad(deg: number): number {
+    return deg * (Math.PI / 180);
   }
 
   private calculateJaccardSimilarity(arr1: string[], arr2: string[]): number {

@@ -220,8 +220,42 @@ const LOCATIONS = [
   'Miami',
 ];
 
+const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  'New York': { lat: 40.7128, lng: -74.006 },
+  'Los Angeles': { lat: 34.0522, lng: -118.2437 },
+  Chicago: { lat: 41.8818, lng: -87.6232 },
+  'San Francisco': { lat: 37.7749, lng: -122.4194 },
+  Seattle: { lat: 47.6062, lng: -122.3321 },
+  Austin: { lat: 30.2672, lng: -97.7431 },
+  Boston: { lat: 42.3601, lng: -71.0589 },
+  Miami: { lat: 25.7617, lng: -80.1918 },
+  'Palo Alto': { lat: 37.4419, lng: -122.143 },
+  'San Jose': { lat: 37.3382, lng: -121.8863 },
+  Cambridge: { lat: 42.3736, lng: -71.1097 },
+  Brooklyn: { lat: 40.6782, lng: -73.9442 },
+  Manhattan: { lat: 40.7831, lng: -73.9712 },
+  'Santa Monica': { lat: 34.0195, lng: -118.4912 },
+  Hollywood: { lat: 34.0928, lng: -118.3287 },
+  Bellevue: { lat: 47.6101, lng: -122.2015 },
+  'New Haven': { lat: 41.3083, lng: -72.9279 },
+  Princeton: { lat: 40.3573, lng: -74.6672 },
+  Philadelphia: { lat: 39.9526, lng: -75.1652 },
+  Durham: { lat: 35.994, lng: -78.8986 },
+  Evanston: { lat: 42.0451, lng: -87.6877 },
+  Ithaca: { lat: 42.444, lng: -76.5019 },
+};
+
 export async function seedUsers(prisma: PrismaClient) {
   console.log('🌱 Seeding users...');
+
+  // 0. Fetch all colleges to assign correct IDs
+  const allColleges = await prisma.college.findMany();
+  const collegeMap = new Map(allColleges.map((c) => [c.name, c.id]));
+  console.log(`Loaded ${collegeMap.size} colleges for linking`);
+
+  // CLEAR EXISTING USERS
+  console.log('Cleaning up existing users...');
+  await prisma.user.deleteMany({});
 
   const password = 'Password@123';
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -229,6 +263,17 @@ export async function seedUsers(prisma: PrismaClient) {
   // 1. Seed fixed dummy users
   for (const userData of DUMMY_USERS) {
     try {
+      const primaryLocation = userData.preferredLocations[0] || 'San Francisco';
+      const cityCoords =
+        CITY_COORDINATES[primaryLocation] || CITY_COORDINATES['San Francisco'];
+
+      const latJitter = (Math.random() - 0.5) * 0.1;
+      const lngJitter = (Math.random() - 0.5) * 0.1;
+
+      const collegeId = userData.collegeName
+        ? collegeMap.get(userData.collegeName)
+        : undefined;
+
       await prisma.user.upsert({
         where: { email: userData.email },
         update: {},
@@ -238,6 +283,7 @@ export async function seedUsers(prisma: PrismaClient) {
           password: hashedPassword,
           fullName: userData.fullName,
           collegeName: userData.collegeName,
+          collegeId: collegeId, // Link to College model
           major: userData.major,
           graduationYear: userData.graduationYear,
           bio: userData.bio,
@@ -245,9 +291,14 @@ export async function seedUsers(prisma: PrismaClient) {
           interests: userData.interests,
           preferredLocations: userData.preferredLocations,
           profileCompleted: true,
+          lastLatitude: cityCoords.lat + latJitter,
+          lastLongitude: cityCoords.lng + lngJitter,
+          lastLocationAt: new Date(),
         },
       });
-      console.log(`✓ Seeded anchor user: ${userData.email}`);
+      console.log(
+        `✓ Seeded anchor user: ${userData.email} (${userData.collegeName})`,
+      );
     } catch (error: any) {
       console.error(
         `✗ Error seeding anchor user ${userData.email}:`,
@@ -268,6 +319,7 @@ export async function seedUsers(prisma: PrismaClient) {
 
     // Pick random attributes with overlap
     const collegeName = faker.helpers.arrayElement(COLLEGES);
+    const collegeId = collegeMap.get(collegeName);
     const major = faker.helpers.arrayElement(MAJORS);
     const graduationYear = faker.number.int({ min: 2023, max: 2026 });
 
@@ -289,6 +341,16 @@ export async function seedUsers(prisma: PrismaClient) {
     // Generate photo (using UI avatars or placeholder for now as real URLs are hard to generate reliably without API)
     const photoUrls = [faker.image.avatar()];
 
+    // Generate location from preferred location (pick first one)
+    const primaryLocation = preferredLocations[0] || 'San Francisco';
+    const cityCoords =
+      CITY_COORDINATES[primaryLocation] || CITY_COORDINATES['San Francisco'];
+
+    // Add random jitter (approx 5km radius) to avoid stacking users exactly on top of each other
+    // 1 degree lat is ~111km, so 0.05 is ~5.5km
+    const latJitter = (Math.random() - 0.5) * 0.1;
+    const lngJitter = (Math.random() - 0.5) * 0.1;
+
     try {
       await prisma.user.upsert({
         where: { email },
@@ -298,6 +360,7 @@ export async function seedUsers(prisma: PrismaClient) {
           password: hashedPassword,
           fullName,
           collegeName,
+          collegeId: collegeMap.get(collegeName),
           major,
           graduationYear,
           bio,
@@ -307,6 +370,9 @@ export async function seedUsers(prisma: PrismaClient) {
           profileCompleted: true,
           gender: sex,
           dateOfBirth: faker.date.birthdate({ min: 18, max: 25, mode: 'age' }),
+          lastLatitude: cityCoords.lat + latJitter,
+          lastLongitude: cityCoords.lng + lngJitter,
+          lastLocationAt: new Date(),
         },
       });
       // console.log(`✓ Generated user: ${email}`); // Commented out to reduce noise

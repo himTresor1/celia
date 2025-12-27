@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScoringService } from '../scoring/scoring.service';
 
@@ -9,9 +13,21 @@ export class FriendsService {
     private scoring: ScoringService,
   ) {}
 
-
-  async getFriends(userId: string, page = 1, limit = 50): Promise<any> {
-    const skip = (page - 1) * limit;
+  async getFriends(
+    userId: string,
+    page: any = 1,
+    limit: any = 50,
+  ): Promise<any> {
+    // Ensure page is a valid number
+    const pageNum = Math.max(
+      1,
+      typeof page === 'string' ? parseInt(page) || 1 : page,
+    );
+    const limitNum = Math.max(
+      1,
+      typeof limit === 'string' ? parseInt(limit) || 50 : limit,
+    );
+    const skip = (pageNum - 1) * limitNum;
 
     const [friendships, total] = await Promise.all([
       this.prisma.friendship.findMany({
@@ -43,7 +59,7 @@ export class FriendsService {
         },
         orderBy: { completedAt: 'desc' },
         skip,
-        take: limit,
+        take: limitNum,
       }),
       this.prisma.friendship.count({
         where: {
@@ -62,13 +78,17 @@ export class FriendsService {
     return {
       friends,
       total,
-      page,
-      limit,
-      pages: Math.ceil(total / limit),
+      page: pageNum,
+      limit: limitNum,
+      pages: Math.ceil(total / limitNum),
     };
   }
 
-  async sendFriendRequest(fromUserId: string, toUserId: string, message?: string): Promise<any> {
+  async sendFriendRequest(
+    fromUserId: string,
+    toUserId: string,
+    message?: string,
+  ): Promise<any> {
     if (fromUserId === toUserId) {
       throw new BadRequestException('Cannot send friend request to yourself');
     }
@@ -229,7 +249,10 @@ export class FriendsService {
     });
   }
 
-  async getFriendRequests(userId: string, type: 'sent' | 'received' = 'received'): Promise<any> {
+  async getFriendRequests(
+    userId: string,
+    type: 'sent' | 'received' = 'received',
+  ): Promise<any> {
     const where: any = {
       status: 'pending',
     };
@@ -338,10 +361,13 @@ export class FriendsService {
     });
   }
 
-  async getFriendSuggestions(userId: string, limit: number = 50): Promise<any[]> {
+  async getFriendSuggestions(
+    userId: string,
+    limit: number = 50,
+  ): Promise<any[]> {
     // TEMPORARY: Return all users for testing purposes
     // TODO: Replace with proper recommendation algorithm later
-    
+
     // Get current user profile
     const currentUser = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -434,12 +460,18 @@ export class FriendsService {
     }
 
     // 2. Same College (30 points)
-    if (currentUser.collegeId === candidate.collegeId && currentUser.collegeId) {
+    if (
+      currentUser.collegeId === candidate.collegeId &&
+      currentUser.collegeId
+    ) {
       score += 30;
     }
 
     // 3. Mutual Friends (up to 40 points)
-    const mutualCount = await this.getMutualFriendsCount(currentUserId, candidate.id);
+    const mutualCount = await this.getMutualFriendsCount(
+      currentUserId,
+      candidate.id,
+    );
     score += Math.min(40, mutualCount * 8);
 
     // 4. Similar Attractiveness Score (15 points if within 10 points)
@@ -472,7 +504,10 @@ export class FriendsService {
     return score;
   }
 
-  private async getMutualFriendsCount(userId: string, targetUserId: string): Promise<number> {
+  private async getMutualFriendsCount(
+    userId: string,
+    targetUserId: string,
+  ): Promise<number> {
     const mutualFriends = await this.getMutualFriends(userId, targetUserId);
     return mutualFriends.length;
   }
@@ -512,5 +547,4 @@ export class FriendsService {
       f.user1Id === userId ? f.user2Id : f.user1Id,
     );
   }
-
 }

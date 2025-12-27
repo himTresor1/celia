@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
@@ -16,6 +17,8 @@ import {
 } from '@expo-google-fonts/dm-sans';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as ExpoLocation from 'expo-location';
+import { api } from '@/lib/api';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -39,6 +42,49 @@ function RootLayoutNav() {
       // Cleanup listeners on unmount
       return () => {
         listeners.remove();
+      };
+    }
+  }, [session, loading]);
+
+  // Request location permissions and update location
+  useEffect(() => {
+    if (session && !loading) {
+      const updateLocation = async () => {
+        try {
+          const { status } =
+            await ExpoLocation.requestForegroundPermissionsAsync();
+          if (status !== 'granted') {
+            console.log('Permission to access location was denied');
+            return;
+          }
+
+          const location = await ExpoLocation.getCurrentPositionAsync({});
+          console.log('Location:', location);
+
+          // await api.updateLocation(
+          //   location.coords.latitude,
+          //   location.coords.longitude
+          // );
+        } catch (error) {
+          console.error('Error updating location:', error);
+        }
+      };
+
+      // Initial update
+      // updateLocation();
+
+      // Update on app resume
+      const subscription = AppState.addEventListener(
+        'change',
+        (nextAppState) => {
+          if (nextAppState === 'active') {
+            // updateLocation();
+          }
+        }
+      );
+
+      return () => {
+        subscription.remove();
       };
     }
   }, [session, loading]);

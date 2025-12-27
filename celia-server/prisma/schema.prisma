@@ -33,6 +33,9 @@ model User {
   engagementPoints    Int       @default(0) @map("engagement_points")
   socialStreakDays    Int       @default(0) @map("social_streak_days")
   lastActiveDate      DateTime? @map("last_active_date") @db.Date
+  lastLatitude        Float?    @map("last_latitude")
+  lastLongitude       Float?    @map("last_longitude")
+  lastLocationAt      DateTime? @map("last_location_at")
   appOpensCount       Int       @default(0) @map("app_opens_count")
   profileCompleteness Int       @default(0) @map("profile_completeness")
 
@@ -245,6 +248,8 @@ model College {
   name      String   @unique
   domain    String?
   location  String?
+  latitude  Float?
+  longitude Float?
   createdAt DateTime @default(now()) @map("created_at")
 
   users User[]
@@ -256,6 +261,8 @@ model City {
   id        String   @id @default(uuid())
   name      String   @unique
   country   String?
+  latitude  Float?
+  longitude Float?
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([name])

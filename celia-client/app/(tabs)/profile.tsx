@@ -1,7 +1,26 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+} from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
-import { User, LogOut, Settings, Heart, MapPin, GraduationCap, CheckCircle, Users, Mail, Calendar, ChevronRight } from 'lucide-react-native';
+import {
+  User,
+  LogOut,
+  Settings,
+  Heart,
+  MapPin,
+  GraduationCap,
+  CheckCircle,
+  Users,
+  Mail,
+  Calendar,
+  ChevronRight,
+} from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { apiHelpers } from '@/lib/apiHelpers';
 
@@ -56,7 +75,9 @@ export default function ProfileScreen() {
               ))}
               {photos.length > 3 && (
                 <View style={styles.morePhotos}>
-                  <Text style={styles.morePhotosText}>+{photos.length - 3}</Text>
+                  <Text style={styles.morePhotosText}>
+                    +{photos.length - 3}
+                  </Text>
                 </View>
               )}
             </View>
@@ -85,7 +106,9 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.metricCard}>
               <Mail size={24} color="#FF9500" />
-              <Text style={styles.metricNumber}>{stats.invitationsReceived}</Text>
+              <Text style={styles.metricNumber}>
+                {stats.invitationsReceived}
+              </Text>
               <Text style={styles.metricLabel}>Invitations</Text>
             </View>
             <View style={styles.metricCard}>
@@ -98,7 +121,9 @@ export default function ProfileScreen() {
 
         {stats && (
           <View style={styles.attractivenessSection}>
-            <Text style={styles.attractivenessLabel}>Attractiveness Rating</Text>
+            <Text style={styles.attractivenessLabel}>
+              Attractiveness Rating
+            </Text>
             <Text style={styles.attractivenessScore}>⭐ {stats.rating}/10</Text>
             <Text style={styles.streakText}>
               🔥 {stats.socialStreakDays || 0} day streak
@@ -144,7 +169,9 @@ export default function ProfileScreen() {
                   <Text style={styles.collegeMajor}>{profile.major}</Text>
                 )}
                 {profile.graduation_year && (
-                  <Text style={styles.collegeYear}>Class of {profile.graduation_year}</Text>
+                  <Text style={styles.collegeYear}>
+                    Class of {profile.graduation_year}
+                  </Text>
                 )}
               </View>
             </View>
@@ -185,12 +212,21 @@ export default function ProfileScreen() {
         )}
 
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              console.log('Navigating to Edit Profile');
+              router.push('/profile/edit');
+            }}
+          >
             <Settings size={20} color="#3AFF6E" />
             <Text style={styles.actionText}>Edit Profile</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={handleSignOut}
+          >
             <LogOut size={20} color="#FF3B30" />
             <Text style={styles.signOutText}>Sign Out</Text>
           </TouchableOpacity>

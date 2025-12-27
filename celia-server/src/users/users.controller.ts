@@ -17,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateLocationDto } from './dto/update-location.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
@@ -99,28 +100,6 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update user profile' })
-  @ApiResponse({
-    status: 200,
-    description: 'User profile updated',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Can only update own profile',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found',
-  })
-  update(
-    @Param('id') id: string,
-    @CurrentUser() user: any,
-    @Body() dto: UpdateUserDto,
-  ) {
-    return this.usersService.update(id, user.id, dto);
-  }
-
   @Get(':id/stats')
   @ApiOperation({ summary: 'Get user statistics' })
   @ApiResponse({
@@ -167,6 +146,17 @@ export class UsersController {
     return this.usersService.updatePushToken(user.id, dto.pushToken);
   }
 
+  @Patch('location')
+  @ApiOperation({ summary: 'Update user last known location' })
+  @ApiResponse({
+    status: 200,
+    description: 'Location updated',
+  })
+  updateLocation(@CurrentUser() user: any, @Body() dto: UpdateLocationDto) {
+    console.log('UpdateLocationDTO received:', dto);
+    return this.usersService.updateLocation(user.id, dto.lat, dto.lng);
+  }
+
   @Post('send-college-verification-otp')
   @ApiOperation({ summary: 'Send OTP for college email verification' })
   @ApiResponse({
@@ -195,5 +185,27 @@ export class UsersController {
       dto.email,
       dto.otpCode,
     );
+  }
+
+    @Patch(':id')
+  @ApiOperation({ summary: 'Update user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile updated',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Can only update own profile',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  update(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() dto: UpdateUserDto,
+  ) {
+    return this.usersService.update(id, user.id, dto);
   }
 }

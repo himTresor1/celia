@@ -32,6 +32,7 @@ import {
 } from 'lucide-react-native';
 import { DUMMY_USERS } from '@/lib/dummyUsers';
 import * as Haptics from 'expo-haptics';
+import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, BorderRadius } from '@/constants/theme';
@@ -51,13 +52,14 @@ interface UserProfile {
   preferred_locations: string[];
   bio?: string;
   match_score?: number;
+  match_insights?: string[]; // Added match_insights
+  distance?: number;
   scores?: {
+    college?: number; // Added college score
     personality: number;
     eventAffinity: number;
     socialProximity: number;
     quality: number;
-    interestOverlap: number;
-    activity: number;
   };
 }
 
@@ -77,6 +79,7 @@ export default function HomeScreen() {
   const [isJustLooking, setIsJustLooking] = useState(false);
   const [savedUsers, setSavedUsers] = useState<Set<string>>(new Set());
   const [passedUsers, setPassedUsers] = useState<Set<string>>(new Set());
+  const [showInsights, setShowInsights] = useState(false);
 
   const position = useRef(new Animated.ValueXY()).current;
   const rotation = useRef(new Animated.Value(0)).current;
@@ -102,7 +105,7 @@ export default function HomeScreen() {
         const { data } = await apiHelpers.getSavedUsers(user.id);
         if (data) {
           const items = Array.isArray(data) ? data : data.items || [];
-          const savedIds = new Set(
+          const savedIds = new Set<string>(
             items.map((item: any) => {
               const savedUser = item.user || item.saved_user || item;
               return (savedUser.id ||
@@ -193,10 +196,28 @@ export default function HomeScreen() {
 
   const fetchUsers = async () => {
     try {
-      // Fetch recommendations from API
-      // We can pass lat/lng here if we have location access, for now we rely on user profile
-      const data = await api.getRecommendations();
-      console.log(data);
+      // Get current location
+      let filters = {};
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({});
+          filters = {
+            lat: location.coords.latitude,
+            lng: location.coords.longitude,
+          };
+          // Also update backend with location
+          // api
+          //   .updateLocation(location.coords.latitude, location.coords.longitude)
+          //   .catch(() => {});
+        }
+      } catch (e) {
+        console.log('Location access not available for recommendations');
+      }
+
+      // Fetch recommendations from API with location filter (60km radius default)
+      const data = await api.getRecommendations(filters);
+      console.log('Got recommendations:', data?.length);
 
       // Map backend data (camelCase) to frontend structure (snake_case)
       // and filter out current user just in case
@@ -212,14 +233,15 @@ export default function HomeScreen() {
           bio: u.bio,
           // Add match metadata if available
           match_score: u.matchScore,
+          match_insights: u.matchInsights || [],
+          distance: u.distance,
           scores: u.scores,
         }));
 
       if (mappedUsers.length > 0) {
         setUsers(mappedUsers);
       } else {
-        // Fallback to dummy users if API returns empty (for demo purposes)
-        // or handle empty state
+        // Fallback to dummy users if API returns empty
         console.log(
           'No recommendations found, falling back to dummy users for demo'
         );
@@ -803,12 +825,18 @@ export default function HomeScreen() {
               <View style={styles.cardContent}>
                 <View style={styles.cardHeader}>
                   {currentUser.match_score !== undefined && (
-                    <View style={styles.matchBadge}>
+                    <TouchableOpacity
+                      style={styles.matchBadge}
+                      onPress={() => {
+                        setShowInsights(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
                       <Sparkles size={14} color="#FFD700" fill="#FFD700" />
                       <Text style={styles.matchText}>
                         {Math.round(currentUser.match_score * 100)}% Match
                       </Text>
-                    </View>
+                    </TouchableOpacity>
                   )}
                   <View style={styles.nameRow}>
                     <Text style={styles.cardName}>{currentUser.full_name}</Text>
@@ -824,10 +852,19 @@ export default function HomeScreen() {
                   )}
                 </View>
 
-                {location && (
+                {(location || currentUser.distance != null) && (
                   <View style={styles.locationRow}>
                     <MapPin size={14} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.locationText}>{location}</Text>
+                    <Text style={styles.locationText}>
+                      {[
+                        location,
+                        currentUser.distance != null
+                          ? `${currentUser.distance.toFixed(1)} km away`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' • ')}
+                    </Text>
                   </View>
                 )}
 
@@ -844,26 +881,6 @@ export default function HomeScreen() {
                       .map((interest, index) => (
                         <View key={index} style={styles.interestTag}>
                           <Text style={styles.interestText}>{interest}</Text>
-                        </View>
-                      ))}
-                  </View>
-                )}
-
-                {/* Score Breakdown */}
-                {currentUser.scores && (
-                  <View style={styles.scoreBreakdown}>
-                    {Object.entries(currentUser.scores)
-                      .filter(([_, score]) => (score as number) > 0)
-                      .sort(([, a], [, b]) => (b as number) - (a as number))
-                      .slice(0, 3) // Show top 3 contributors
-                      .map(([key, score]) => (
-                        <View key={key} style={styles.scoreItem}>
-                          <Text style={styles.scoreLabel}>
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
-                          </Text>
-                          <Text style={styles.scoreValue}>
-                            {Math.round((score as number) * 100)}%
-                          </Text>
                         </View>
                       ))}
                   </View>
@@ -897,11 +914,18 @@ export default function HomeScreen() {
                 )}
                 <View style={styles.listItemContent}>
                   <Text style={styles.listItemName}>{item.full_name}</Text>
-                  {item.college_name && (
-                    <Text style={styles.listItemCollege}>
-                      {item.college_name}
-                    </Text>
-                  )}
+                  <View style={{ gap: 2 }}>
+                    {item.college_name && (
+                      <Text style={styles.listItemCollege}>
+                        {item.college_name}
+                      </Text>
+                    )}
+                    {item.distance != null && (
+                      <Text style={[styles.listItemCollege, { fontSize: 10 }]}>
+                        {item.distance.toFixed(1)} km away
+                      </Text>
+                    )}
+                  </View>
                   {item.bio && (
                     <Text style={styles.listItemBio} numberOfLines={2}>
                       {item.bio}
@@ -996,6 +1020,54 @@ export default function HomeScreen() {
           View saved list ({savedUsers.size})
         </Text>
       </TouchableOpacity>
+
+      {/* Insights Modal */}
+      <Modal
+        visible={showInsights}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowInsights(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowInsights(false)}
+        >
+          <View
+            style={styles.insightsModalContent}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.insightsHeader}>
+              <Sparkles size={24} color="#FFD700" fill="#FFD700" />
+              <Text style={styles.insightsTitle}>Why you match</Text>
+              <TouchableOpacity
+                onPress={() => setShowInsights(false)}
+                style={styles.closeInsightsButton}
+              >
+                <X size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.insightsList}>
+              {currentUser?.match_insights?.map((insight, index) => (
+                <View key={index} style={styles.insightItem}>
+                  <View style={styles.insightIconConfig}>
+                    <View style={styles.insightDot} />
+                  </View>
+                  <Text style={styles.insightText}>{insight}</Text>
+                </View>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={styles.gotItButton}
+              onPress={() => setShowInsights(false)}
+            >
+              <Text style={styles.gotItButtonText}>Awesome!</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Choice Modal */}
       <Modal
@@ -1463,6 +1535,7 @@ const styles = StyleSheet.create({
     gap: 40,
     paddingVertical: 20,
     paddingBottom: 24,
+    marginTop: 20, // Moved buttons down
   },
   passButton: {
     width: 60,
@@ -1627,5 +1700,81 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textSecondary,
     fontWeight: '500',
+  },
+
+  insightsModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxHeight: '60%',
+    position: 'absolute',
+    bottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  insightsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+  },
+  insightsTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    flex: 1,
+  },
+  closeInsightsButton: {
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: '#F5F7FA',
+  },
+  insightsList: {
+    gap: 16,
+    marginBottom: 24,
+  },
+  insightItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F9F9F9',
+    padding: 12,
+    borderRadius: 12,
+  },
+  insightIconConfig: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E8EFF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  insightDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#3AFF6E',
+  },
+  insightText: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '500',
+    flex: 1,
+  },
+  gotItButton: {
+    backgroundColor: '#3AFF6E',
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  gotItButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

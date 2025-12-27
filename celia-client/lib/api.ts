@@ -498,6 +498,28 @@ class ApiClient {
     return response.data;
   }
 
+  private lastLocationUpdate = 0;
+
+  async updateLocation(lat: number, lng: number) {
+    const now = Date.now();
+    // Update at most once every 5 minutes (300000 ms)
+    if (now - this.lastLocationUpdate < 300000) {
+      console.log('[API] Skipping location update (throttled)');
+      return;
+    }
+
+    console.log({
+      lat,
+      lng,
+    });
+    const response = await this.client.patch('/users/location', {
+      lat,
+      lng,
+    });
+    this.lastLocationUpdate = now;
+    return response.data;
+  }
+
   async getNotifications(page = 1, limit = 50) {
     const response = await this.client.get('/notifications', {
       params: { page, limit },
